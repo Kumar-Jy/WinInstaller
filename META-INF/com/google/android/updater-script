@@ -2,82 +2,101 @@
 #
 # Copyright (C) 2023-24 https://github.com/Kumar-Jy
 #
-# Made for WINDOWS Installation on [Device Name] 
+# Made for WINDOWS Installation on WOA Devices
 #
-show_progress 1.34 110;
-ui_print "*************************************************";
-ui_print "* Welcome to Windows Installation on $(getprop ro.product.device) *";
-ui_print "*       This Script is only for $(getprop ro.product.model)     *";
-ui_print "*                Made by Kumar_Jy               *";
-ui_print "*       Telegram : https://t.me/Kumar_Jy        *";
-ui_print "*     Github  : https://github.com/Kumar-Jy     *";
-ui_print "*************************************************";
-ui_print "*               Verifying Device                *";
-ui_print "*-----------------------------------------------*";
-if [ $(blockdev --getsize64 /dev/block/by-name/win) < 26843545600 ]; then
-ui_print "WIN partition is smaller than 25GB. Aborting."
+
+show_progress 1.34 125;
+ui_print "*************************************************"
+ui_print "* Welcome to Windows Installation on $(getprop ro.product.model)   *"
+ui_print "*         This Script is only for $(getprop ro.product.device)          *"
+ui_print "*                Made by Kumar_Jy               *"
+ui_print "*   Telegram : @Kumar_Jy, Github : /Kumar-Jy    *"
+ui_print "*Tweks by ArKT (Telegram:ArKT_7, Github:/ArKT-7)*"
+ui_print "*************************************************"
+ui_print "*          Verifying Partition size             *"
+ui_print "*************************************************"
+if [ $(blockdev --getsize64 $partwin) < 26843545600 ]; then  
+	ui_print "WIN partition is smaller than 25GiB."
+	ui_print "re-creat partition and start again."
     exit 1
 fi
-if [ $(blockdev --getsize64 /dev/block/by-name/esp) < 347287552 ]; then
-ui_print "ESP partition is smaller than 350MB. Aborting."
+if [ $(blockdev --getsize64 $partesp) < 249000000 ]; then
+    ui_print "ESP partition is smaller than 350MB."
+	ui_print "re-creat partition and start again."
     exit 1
 fi
-ui_print "*           Installation Process Start          *";
-ui_print "*-----------------------------------------------*";
-ui_print "*  backup Importent Partition    *";
-mkdir -p /tmp/backup
-for part in boot$(getprop ro.boot.slot_suffix) dtbo$(getprop ro.boot.slot_suffix) fsc fsg modemst1 modemst2; do
-  dd if=/dev/block/by-name/$part of=/tmp/imptbackup/$part.img bs=16M
+ui_print "*************************************************"
+ui_print "*  extracting boot and modem to /cust/backup    *"
+umount /dev/block/by-name/cust
+mke2fs -t ext2 /dev/block/by-name/cust
+mount /dev/block/by-name/cust /cust
+mkdir -p /cust/backup
+for part in boot$(getprop ro.boot.slot_suffix) dtbo$(getprop ro.boot.slot_suffix) fsc fsg modemst1 modemst2; do  
+  dd if=/dev/block/by-name/$part of=/cust/backup/$part.img bs=8M
 done
-mkdir -p /sdcard/{backup,UEFI}
-cp -r -n /tmp/backup/ /sdcard
-ui_print "*-----------------------------------------------*";
-ui_print "*         Unmount and format partitions         *";
+ui_print "*************************************************"
+ui_print "*   Checking if Windows is already installed    *"
+mkdir /tmp/win
 umount /dev/block/by-name/win
-mkfs.ntfs -f /dev/block/by-name/win -L WIN$(getprop ro.product.device)
-ui_print "*-----------------------------------------------*";
-ui_print "*                Mount partitions               *";
-mkdir -p /tmp/win
 mount.ntfs /dev/block/by-name/win /tmp/win
-ui_print "*-----------------------------------------------*";
-ui_print "*              Copying Windows Image            *";
-mkdir -p /tmp/win/installer/Driver
-if ls /sdcard/Download/*.esd 1> /dev/null 2>&1; then
-    copy_with_progress /sdcard/Download/*.esd /tmp/win/installer/install.esd
-    ui_print "ESD file copied to /tmp/win/installer/install.esd"
-elif ls /sdcard/Download/*.wim 1> /dev/null 2>&1; then
-	copy_with_progress /sdcard/Download/*.wim /tmp/win/installer/install.wim
-    ui_print "WIM file copied to /win/installer/install.wim"
+if [ -f /tmp/win/Windows/explorer.exe ]; then
+    ui_print "Windows is already installed. Skipping format and copy steps."
 else
-    ui_print "No ESD or WIM files found in /sdcard/Download."
-    exit 1
+    ui_print "*************************************************"
+    ui_print "*         Unmount and format partitions         *"
+    umount /dev/block/by-name/win
+    mkfs.ntfs -f /dev/block/by-name/win -L WIN$(getprop ro.product.device)
+    ui_print "*************************************************"
+    ui_print "*                Mount partitions               *"
+    mkdir -p /tmp/win
+    mount.ntfs /dev/block/by-name/win /tmp/win
+    ui_print "*************************************************"
+    ui_print "*              Copying Windows Image            *"
+    mkdir -p /tmp/win/installer/Driver
+    if ls /sdcard/Download/*.esd 1> /dev/null 2>&1; then
+        FIRST_ESD=$(ls /sdcard/Download/*.esd | head -n 1)
+        copy_with_progress "$FIRST_ESD" /tmp/win/installer/install.esd
+        ui_print "ESD file copied to /tmp/win/installer/install.esd"
+    elif ls /sdcard/Download/*.wim 1> /dev/null 2>&1; then
+        FIRST_WIM=$(ls /sdcard/Download/*.wim | head -n 1)
+        copy_with_progress "$FIRST_WIM" /tmp/win/installer/install.wim
+        ui_print "WIM file copied to /tmp/win/installer/install.wim"
+    else
+        ui_print "No ESD or WIM files found in /sdcard/Download. Aborting."
+        exit 1
+    fi
 fi
-ui_print "*-----------------------------------------------*";
-ui_print "*          Extracting installation files        *";
-for file in Driver.zip pe.img uefi.img install.bat; do
+ui_print "*************************************************"
+ui_print "*          Extracting installation files        *"
+mkdir -p /tmp/win/installer/Driver
+for file in Driver.zip pe.img uefi.img install.bat sta.exe; do  
   package_extract_file "$file" "/tmp/win/installer/$file"
 done
-package_extract_file "winactivator.bat" "/tmp/win/winactivator.bat";
+package_extract_file "winactivator.bat" "/tmp/win/winactivator.bat"
 unzip /tmp/win/installer/Driver.zip -d /tmp/win/installer/Driver
-ui_print "*-----------------------------------------------*";
-ui_print "*                 Flash UEFI image              *";
+# mv /tmp/win/installer/Driver/definitions/Desktop/ARM64/Internal/*.xml /tmp/win/installer/Driver/definitions/Desktop/ARM64/Internal/sog.xml
+ui_print "*************************************************"
+ui_print "*                 Flash UEFI image              *"
 rm /sdcard/UEFI/*.img
+mkdir -p /sdcard/{backup,UEFI}
+cp -r -n /cust/backup /sdcard
 dd if=/tmp/win/installer/uefi.img of=/sdcard/UEFI/uefi.img bs=8M
 dd if=/sdcard/backup/boot$(getprop ro.boot.slot_suffix).img of=/tmp/win/boot.img bs=64M
-dd if=/tmp/win/installer/sog.img of=/dev/block/by-name/esp bs=128M
+dd if=/sdcard/backup/boot$(getprop ro.boot.slot_suffix).img of=/tmp/win/installer/boot.img bs=64M
+dd if=/tmp/win/installer/pe.img of=/dev/block/by-name/esp bs=8M
 dd if=/tmp/win/installer/uefi.img of=/dev/block/by-name/boot$(getprop ro.boot.slot_suffix) bs=8M
-umount /dev/block/by-name/win
-ui_print "*************************************************";
-ui_print "*              Flashing Completed               *";
-ui_print "*                                               *";
-ui_print "*             rebooting in 5 sec and            *";
-ui_print "*                                               *";
-ui_print "*     Installation will start automatically     *";
-ui_print "*                                               *";
-ui_print "*  If Installation Failed, Don't Flash it again *";
-ui_print "*                                               *";
-ui_print "*         ask for help on Telegram Chat         *";
-ui_print "*                                               *";
-ui_print "*************************************************";
-ui_print "Ui Print and progress bar for TWRP fixed by https://github.com/ArKT-7";
+umount /dev/block/by-name/{esp,win,cust}
+sleep 1
+ui_print "*************************************************"
+ui_print "*              Flashing Completed               *"
+ui_print "*                                               *"
+ui_print "*        Now reboot to start Installation       *"
+ui_print "*                                               *"
+ui_print "*     Installation will start automatically     *"
+ui_print "*                                               *"
+ui_print "*      If it Failes, Don't Flash it again       *"
+ui_print "*                                               *"
+ui_print "*    ask for help on Telegram: @wininstaller    *"
+ui_print "*                                               *"
+ui_print "*************************************************"
 exit
