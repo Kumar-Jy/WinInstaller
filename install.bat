@@ -15,14 +15,14 @@ set targetDrive=
 
 :: Loop through all drives to find the image file
 for %%G in (C D E F G H I J K L M N O P Q R S T U V W X Y Z) do (
-    if exist %%G:\installer\sta.exe (
+    if exist %%G:\installer\install.bat (
 		set flashboot=%%G\installer\sta.exe -n
 		set targetDrive=%%G:
         goto :found
     )
 )
 
-echo sta.exe not found.
+echo install.bat not found.
 echo Take picture of error, force Reboot and ask for help...
 pause
 exit /b 1
@@ -51,6 +51,7 @@ for %%G in (C D E F G H I J K L M N O P Q R S T U V W X Y Z) do (
         set imageFile=%%G:\installer\install.esd
         goto :found
     ) else if exist %%G:\installer\install.wim (
+        set imageFile=%%G:\installer\install.wim
         goto :found
     )
 )
@@ -185,17 +186,17 @@ if not defined VolumeNumber (
 :volFound
 echo Found FAT32 volume with ESP or PE, Volume Number %VolumeNumber%
 
-:: Format the volume, assign the drive letter S, and label it "ESPNABU"
+:: Format the volume, assign the drive letter S, and label it "ESPVAYU"
 (
     echo select volume %VolumeNumber%
-    echo format fs=fat32 quick label=ESPNABU
+    echo format fs=fat32 quick label=ESPVAYU
     echo assign letter=S
 ) | diskpart
 
 echo.
 echo ============================================================
 echo           %VolumeNumber% has been formatted with FAT32,
-echo           Assigned letter S, and labeled "ESPNABU".
+echo           Assigned letter S, and labeled "ESPVAYU".
 echo ============================================================
 echo.
 echo.
