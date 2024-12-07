@@ -10,10 +10,10 @@ Windows Installer flashable zip [without PC] for supported ARM64 devices.
 
 ### Preparation
 - Download this repository as a zip and unpack it.
--	Download the sog.img from [here](https://github.com/Kumar-Jy/WinInstaller/releases/download/WinPE/pe.img) and add it to the unpacked folder.
+-	Download the pe.img from [here](https://github.com/Kumar-Jy/WinInstaller/releases/download/WinPE/pe.img) and add it to the unpacked folder.
 -	Place the uefi.img of your device in the unpacked folder.
--	Download the Drivers pack for your device, unpack it, go to the folder `Driver\definitions\Desktop\ARM64\Internal` and rename the XML file to `sog.xml`. Select all files and pack as Driver.zip.
-- Place the modified Driver.zip into the unpacked WinInstaller folder. It should contains Driver.zip, sog.img, uefi.img, and META-INF (all file and folder names are case-sensitive).
+-	Download the Drivers pack for your device, unpack it. Select all files and pack as Driver.zip.
+- Place the modified Driver.zip into the unpacked WinInstaller folder. It should contains Driver.zip, pe.img, uefi.img, and META-INF (all file and folder names are case-sensitive).
 - Select all files/folders and repack them as a zip file. Your WinInstaller.zip is now ready.
 
 ### Flashing Instructions
