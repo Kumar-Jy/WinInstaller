@@ -65,11 +65,13 @@ ui_print() {
   fi;
 }
 
-# UI_PRINT FIX  AND PROGRESS PERCENTAGE WHILE COPYING ADDED BY telegram - ArKT_7, Github - https://github.com/ArKT-7
+
+# FIXES AND FEATURES ADDED BY ArKT , telegram - ArKT_7, Github - https://github.com/ArKT-7
+# UI_PRINT FIX, 
+# ADDED - PROGRESS_BAR, PROGRESS_PERCENTANGE WHILE CP, 
 #
 
 OUTFD=/proc/self/fd/$2;
-
 
 ui_print() {
   until [ ! "$1" ]; do
@@ -78,7 +80,6 @@ ui_print() {
     shift;
   done;
 }
-
 
 show_progress() { echo "progress $1 $2" >> $OUTFD; }
 
@@ -97,8 +98,55 @@ copy_with_progress() {
         ui_print "$progress_message"
         sleep 1
     done
-    ui_print "Copy completed 100%."
+    ui_print "$(basename "$src_file") - 100%."
 }
+
+abort() {
+  ui_print "$@";
+  ui_print "*                      ***                      *";
+  exit 1;
+}
+#till here its by ArKt
+
+part_win="/dev/block/by-name/win"
+part_esp="/dev/block/by-name/esp"
+part_userdata="/dev/block/by-name/userdata"
+WIN_SIZE_BYTES=$(blockdev --getsize64 $part_win)
+ESP_SIZE_BYTES=$(blockdev --getsize64 $part_esp)
+USERDATA_SIZE_BYTES=$(blockdev --getsize64 $part_userdata)
+WIN_SIZE=$(echo "scale=2; $WIN_SIZE_BYTES / 1024 / 1024 / 1024" | bc)
+ESP_SIZE=$(echo "scale=2; $ESP_SIZE_BYTES / 1024 / 1024" | bc)
+USERDATA_SIZE=$(echo "scale=2; $USERDATA_SIZE_BYTES / 1024 / 1024 / 1024" | bc)
+
+WIN_IMAGE=""
+if ls /sdcard/Download/*.esd 1> /dev/null 2>&1; then
+    WIN_IMAGE=$(ls /sdcard/Download/*.esd | head -n 1)
+    ui_print "ESD file found at $WIN_IMAGE"
+elif ls /sdcard/Download/*.wim 1> /dev/null 2>&1; then
+    WIN_IMAGE=$(ls /sdcard/Download/*.wim | head -n 1)
+    ui_print "WIM file found at $WIN_IMAGE"
+elif ls /external_sd/WOA/*.esd 1> /dev/null 2>&1; then
+    WIN_IMAGE=$(ls /external_sd/WOA/*.esd | head -n 1)
+    ui_print "ESD file found at $WIN_IMAGE"
+elif ls /external_sd/WOA/*.wim 1> /dev/null 2>&1; then
+    WIN_IMAGE=$(ls /external_sd/WOA/*.wim | head -n 1)
+    ui_print "WIM file found at $WIN_IMAGE"	
+elif ls /usbstorage/WOA/*.esd 1> /dev/null 2>&1; then
+    WIN_IMAGE=$(ls /usbstorage/WOA/*.esd | head -n 1)
+    ui_print "ESD file found at $WIN_IMAGE"
+elif ls /usbstorage/WOA/*.wim 1> /dev/null 2>&1; then
+    WIN_IMAGE=$(ls /usbstorage/WOA/*.wim | head -n 1)
+    ui_print "WIM file found at $WIN_IMAGE"
+elif ls /usb_otg/WOA/*.esd 1> /dev/null 2>&1; then
+    WIN_IMAGE=$(ls /usb_otg/WOA/*.esd | head -n 1)
+    ui_print "ESD file found at $WIN_IMAGE"
+elif ls /usb_otg/WOA/*.wim 1> /dev/null 2>&1; then
+    WIN_IMAGE=$(ls /usb_otg/WOA/*.wim | head -n 1)
+    ui_print "WIM file found at $WIN_IMAGE"
+else
+    ui_print "No ESD or WIM files found. Aborting."
+    exit 1
+fi
 
 
 package_extract_file(){
@@ -153,7 +201,7 @@ to_ui_print() {
 ui_print;
 if [ "$UPD_ZIP" == "/tmp/update.zip" ]; then
 	ui_print "Can not run in sideload mode"
-	exit 1
+	abort;
 fi
 
 if [ -d $UPD_TEMP_FOLDER ]
