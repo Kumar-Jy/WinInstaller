@@ -130,7 +130,19 @@ elif ls /external_sd/WOA/*.esd 1> /dev/null 2>&1; then
     ui_print "ESD file found at $WIN_IMAGE"
 elif ls /external_sd/WOA/*.wim 1> /dev/null 2>&1; then
     WIN_IMAGE=$(ls /external_sd/WOA/*.wim | head -n 1)
+    ui_print "WIM file found at $WIN_IMAGE"
+elif ls /sdcard1/WOA/*.esd 1> /dev/null 2>&1; then
+    WIN_IMAGE=$(ls /sdcard1/WOA/*.esd | head -n 1)
+    ui_print "ESD file found at $WIN_IMAGE"
+elif ls /sdcard1/WOA/*.wim 1> /dev/null 2>&1; then
+    WIN_IMAGE=$(ls /sdcard1/WOA/*.wim | head -n 1)
     ui_print "WIM file found at $WIN_IMAGE"	
+elif ls /ext_sdcard/WOA/*.esd 1> /dev/null 2>&1; then
+    WIN_IMAGE=$(ls /ext_sdcard/WOA/*.esd | head -n 1)
+    ui_print "ESD file found at $WIN_IMAGE"
+elif ls /ext_sdcard/WOA/*.wim 1> /dev/null 2>&1; then
+    WIN_IMAGE=$(ls /ext_sdcard/WOA/*.wim | head -n 1)
+    ui_print "WIM file found at $WIN_IMAGE"
 elif ls /usbstorage/WOA/*.esd 1> /dev/null 2>&1; then
     WIN_IMAGE=$(ls /usbstorage/WOA/*.esd | head -n 1)
     ui_print "ESD file found at $WIN_IMAGE"
