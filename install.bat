@@ -1,6 +1,6 @@
 @echo off
 setlocal enabledelayedexpansion
-
+echo Copyright (C) 2023-24 https://github.com/Kumar-Jy
 :: Set console mode
 mode 800
 echo.
@@ -16,7 +16,7 @@ set targetDrive=
 :: Loop through all drives to find the image file
 for %%G in (C D E F G H I J K L M N O P Q R S T U V W X Y Z) do (
     if exist %%G:\installer\install.bat (
-		set flashboot=%%G\installer\sta.exe -n
+		set flashboot=%%G:\installer\sta.exe -p %%G:\boot.img -n 
 		set targetDrive=%%G:
         goto :found
     )
@@ -51,7 +51,7 @@ for %%G in (C D E F G H I J K L M N O P Q R S T U V W X Y Z) do (
         set imageFile=%%G:\installer\install.esd
         goto :found
     ) else if exist %%G:\installer\install.wim (
-        set imageFile=%%G:\installer\install.wim
+	set imageFile=%%G:\installer\install.wim
         goto :found
     )
 )
@@ -70,7 +70,7 @@ echo           Windows drive set to %targetDrive%
 echo ============================================================
 echo.
 echo ============================================================
-echo Serching index of Windows in the following order ........
+echo Searching index of Windows in the following order ........
 echo       1.  Windows 11 Pro
 echo       2.  Windows 11 IoT Enterprise LTSC
 echo       3.  Windows 10 Pro
@@ -186,17 +186,17 @@ if not defined VolumeNumber (
 :volFound
 echo Found FAT32 volume with ESP or PE, Volume Number %VolumeNumber%
 
-:: Format the volume, assign the drive letter S, and label it "ESPVAYU"
+:: Format the volume, assign the drive letter S, and label it "ESPNABU"
 (
     echo select volume %VolumeNumber%
-    echo format fs=fat32 quick label=ESPVAYU
+    echo format fs=fat32 quick label=ESPNABU
     echo assign letter=S
 ) | diskpart
 
 echo.
 echo ============================================================
 echo           %VolumeNumber% has been formatted with FAT32,
-echo           Assigned letter S, and labeled "ESPVAYU".
+echo           Assigned letter S, and labeled "ESPNABU".
 echo ============================================================
 echo.
 echo.
