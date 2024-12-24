@@ -156,8 +156,7 @@ elif ls /usb_otg/WOA/*.wim 1> /dev/null 2>&1; then
     WIN_IMAGE=$(ls /usb_otg/WOA/*.wim | head -n 1)
     ui_print "WIM file found at $WIN_IMAGE"
 else
-    ui_print "No ESD or WIM files found. Aborting."
-    exit 1
+    ui_print "No ESD or WIM files found.
 fi
 
 
