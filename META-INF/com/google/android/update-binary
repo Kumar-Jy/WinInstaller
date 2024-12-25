@@ -182,9 +182,9 @@ else
     mount.ntfs $part_win /tmp/win
     if [ -f /tmp/win/Windows/explorer.exe ]; then
         ui_print "Windows is already installed. Processing for drivers update."
+        umount $part_win
     else
         ui_print "No ESD or WIM files found anywhere."
-		umount $part_win
         exit 1
     fi
 fi
