@@ -111,12 +111,45 @@ abort() {
 part_win="/dev/block/by-name/win"
 part_esp="/dev/block/by-name/esp"
 part_userdata="/dev/block/by-name/userdata"
-WIN_SIZE_BYTES=$(blockdev --getsize64 $part_win)
-ESP_SIZE_BYTES=$(blockdev --getsize64 $part_esp)
-USERDATA_SIZE_BYTES=$(blockdev --getsize64 $part_userdata)
-WIN_SIZE=$(echo "scale=2; $WIN_SIZE_BYTES / 1024 / 1024 / 1024" | bc)
-ESP_SIZE=$(echo "scale=2; $ESP_SIZE_BYTES / 1024 / 1024" | bc)
-USERDATA_SIZE=$(echo "scale=2; $USERDATA_SIZE_BYTES / 1024 / 1024 / 1024" | bc)
+
+# Function to round values
+round() {
+    echo $(awk "BEGIN {print int($1 + 0.5)}")
+}
+
+# Check if partitions exist
+if [ -e $part_win ] && [ -e $part_esp ]; then
+    # Get partition sizes in bytes
+    WIN_SIZE_BYTES=$(blockdev --getsize64 $part_win)
+    ESP_SIZE_BYTES=$(blockdev --getsize64 $part_esp)
+    USERDATA_SIZE_BYTES=$(blockdev --getsize64 $part_userdata)
+	
+    # Convert bytes to GB and MB using integer division and rounding
+    WIN_SIZE=$(awk "BEGIN {print $WIN_SIZE_BYTES / (1000 * 1000 * 1000)}")
+    ESP_SIZE=$(awk "BEGIN {print $ESP_SIZE_BYTES / (1000 * 1000)}")
+    USERDATA_SIZE=$(awk "BEGIN {print $USERDATA_SIZE_BYTES / (1000 * 1000 * 1000)}")
+
+    # Round the values
+    WIN_SIZE_ROUNDED=$(round $WIN_SIZE)
+    ESP_SIZE_ROUNDED=$(round $ESP_SIZE)
+    USERDATA_SIZE_ROUNDED=$(round $USERDATA_SIZE)
+
+    # Check partition size requirements
+    if (( WIN_SIZE_ROUNDED >= 30 && ESP_SIZE_ROUNDED >= 349 )); then
+        ui_print "USERDATA_SIZE: ${USERDATA_SIZE_ROUNDED}GB"
+        ui_print "WIN_SIZE: ${WIN_SIZE_ROUNDED}GB"
+        ui_print "ESP_SIZE: ${ESP_SIZE_ROUNDED}MB"
+    else
+		ui_print "USERDATA_SIZE: ${USERDATA_SIZE_ROUNDED}GB"
+        ui_print "WIN_SIZE: ${WIN_SIZE_ROUNDED}GB"
+        ui_print "ESP_SIZE: ${ESP_SIZE_ROUNDED}MB"
+        ui_print "At least 30GB for win and 350MB for esp partition required."
+        exit 1
+    fi
+else
+    ui_print "Required partitions do not exist."
+    exit 1
+fi
 
 WIN_IMAGE=""
 if ls /sdcard/Download/*.esd 1> /dev/null 2>&1; then
@@ -131,18 +164,6 @@ elif ls /external_sd/WOA/*.esd 1> /dev/null 2>&1; then
 elif ls /external_sd/WOA/*.wim 1> /dev/null 2>&1; then
     WIN_IMAGE=$(ls /external_sd/WOA/*.wim | head -n 1)
     ui_print "WIM file found at $WIN_IMAGE"
-elif ls /sdcard1/WOA/*.esd 1> /dev/null 2>&1; then
-    WIN_IMAGE=$(ls /sdcard1/WOA/*.esd | head -n 1)
-    ui_print "ESD file found at $WIN_IMAGE"
-elif ls /sdcard1/WOA/*.wim 1> /dev/null 2>&1; then
-    WIN_IMAGE=$(ls /sdcard1/WOA/*.wim | head -n 1)
-    ui_print "WIM file found at $WIN_IMAGE"	
-elif ls /ext_sdcard/WOA/*.esd 1> /dev/null 2>&1; then
-    WIN_IMAGE=$(ls /ext_sdcard/WOA/*.esd | head -n 1)
-    ui_print "ESD file found at $WIN_IMAGE"
-elif ls /ext_sdcard/WOA/*.wim 1> /dev/null 2>&1; then
-    WIN_IMAGE=$(ls /ext_sdcard/WOA/*.wim | head -n 1)
-    ui_print "WIM file found at $WIN_IMAGE"
 elif ls /usbstorage/WOA/*.esd 1> /dev/null 2>&1; then
     WIN_IMAGE=$(ls /usbstorage/WOA/*.esd | head -n 1)
     ui_print "ESD file found at $WIN_IMAGE"
@@ -156,8 +177,25 @@ elif ls /usb_otg/WOA/*.wim 1> /dev/null 2>&1; then
     WIN_IMAGE=$(ls /usb_otg/WOA/*.wim | head -n 1)
     ui_print "WIM file found at $WIN_IMAGE"
 else
-    ui_print "No ESD or WIM files found.
+    mkdir -p /tmp/win
+    umount $part_win
+    mount.ntfs $part_win /tmp/win
+    if [ -f /tmp/win/Windows/explorer.exe ]; then
+        ui_print "Windows is already installed. Processing for drivers update."
+    else
+        ui_print "No ESD or WIM files found anywhere."
+		umount $part_win
+        exit 1
+    fi
 fi
+
+# Editions to search and set windows edition for in priority order
+WINDOWS_EDITIONS=(
+    "Windows 11 Pro"
+    "Windows 11 IoT Enterprise LTSC"
+    "Windows 10 Pro"
+    "Windows 11 Home"
+)
 
 
 package_extract_file(){
