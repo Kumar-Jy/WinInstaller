@@ -4,33 +4,19 @@
 #
 # Made for WINDOWS Installation on Xiaomi Pad 5 (Nabu) 
 #
+if [ "$(getprop ro.product.device)" != "nabu" ]; then 
+ui_print "This script is only for NABU devices."
+ui_print "Your device is $(getprop ro.product.device)." 
+exit 1
+fi
 
 show_progress 1.34 125;
-ui_print "*************************************************"
+ui_print "================================================*"
 ui_print "* Welcome to Windows Installation on $(getprop ro.product.model)   *"
 ui_print "*         This Script is only for $(getprop ro.product.device)          *"
-ui_print "*       Made by Kumar_Jy and Tweks by ArKT      *"
-ui_print "*************************************************"
-ui_print "*          Verifying Partition size             *"
-ui_print "*-----------------------------------------------*"
-ui_print "WIN Partition Size: ${WIN_SIZE} GB"
-ui_print "ESP Partition Size: ${ESP_SIZE} MB"
-ui_print "USERDATA Partition Size: ${USERDATA_SIZE} GB"
-
-if [ $WIN_SIZE -lt 25 ]; then  
-	ui_print "WIN partition is smaller than 25GB."
-	ui_print "Please re-create partition and start again."
-    exit 1
-fi
-
-if [ $ESP_SIZE -lt 330 ]; then
-    ui_print "ESP partition is smaller than 350MB."
-	ui_print "Please re-create partition and start again."
-    exit 1
-fi
-
-ui_print "*-----------------------------------------------*"
-ui_print "*                    Fixing GPT                 *"
+ui_print "*      Made by Kumar_Jy and Tweaks by ArKT      *"
+ui_print "================================================*"
+ui_print "*                  Fixing GPT                   *"
 GDISK_BINARY="/tmp/gdisk"
 
 setup_gdisk() {
@@ -67,20 +53,52 @@ for part in boot$(getprop ro.boot.slot_suffix) dtbo$(getprop ro.boot.slot_suffix
   dd if=/dev/block/by-name/$part of=/cust/backup/$part.img bs=8M
 done
 mkdir -p /{sdcard,external_sd/WOA,usbstorage/WOA,usb_otg/WOA}/backup
-cp -r -n /cust/backup /sdcard
-cp -r -n /cust/backup /{external_sd/WOA,usbstorage/WOA,usb_otg/WOA}
+for dir in /sdcard /external_sd/WOA /usbstorage/WOA /usb_otg/WOA; do
+    cp -r -n /cache/backup "$dir"
+	done
 ui_print "*-----------------------------------------------*"
 ui_print "*   Checking if Windows is already installed    *"
-mkdir /tmp/win
+mkdir -p /tmp/win
 umount $part_win
 mount.ntfs $part_win /tmp/win
 if [ -f /tmp/win/Windows/explorer.exe ]; then
-    ui_print "Windows is already installed. Skipping format and copy steps."
+    ui_print "*           Windows is already installed.       *"
+	ui_print "*          Skipping format and copy steps.      *"
+else
+	ui_print "*-----------------------------------------------*"
+	ui_print "*             Windows is not installed          *"
+	ui_print "*-----------------------------------------------*"
+    umount $part_win
+    mkfs.ntfs -f $part_win -L WINABU
+	
+	package_extract_file "wimlib-imagex" "/tmp/wimlib-imagex"
+    chmod 0777 /tmp/wimlib-imagex
+    /tmp/wimlib-imagex info "$WIN_IMAGE" > /tmp/wim_info.txt
+	for EDITION in "${WINDOWS_EDITIONS[@]}"; do
+		INDEX=$(grep -B 1 "$EDITION" /tmp/wim_info.txt | awk '/Index/ {print $2; exit}')
+		if [[ -n "$INDEX" ]]; then
+			SELECTED_INDEX="$INDEX"
+			SELECTED_EDITION="$EDITION"
+			break
+			fi
+done
+	
+	ui_print "* Applying Index No $SELECTED_INDEX for $SELECTED_EDITION using Wimlib*"
+
+	/tmp/wimlib-imagex apply "$WIN_IMAGE" "$SELECTED_INDEX" "$part_win"
+	
+	ui_print "*-----------------------------------------------*"
+	ui_print "* $SELECTED_EDITION applied Successfully from $WIN_IMAGE *"
+fi
+
+mount.ntfs $part_win /tmp/win
+if [ -f /tmp/win/Windows/explorer.exe ]; then
+    ui_print "                                                *"
 else
     ui_print "*-----------------------------------------------*"
     ui_print "*         Unmount and format partitions         *"
     umount $part_win
-    mkfs.ntfs -f $part_win -L WIN$(getprop ro.product.device)
+    mkfs.ntfs -f $part_win -L WINNABU
     ui_print "*-----------------------------------------------*"
     ui_print "*              Mounting partitions              *"
     mkdir -p /tmp/win
@@ -105,6 +123,7 @@ done
 package_extract_file "Toolbox.zip" "/tmp/win/Toolbox.zip"
 package_extract_file "woahelper30.apk" "/sdcard/Download/woahelper30.apk"
 unzip /tmp/win/installer/Driver.zip -d /tmp/win/installer/Driver
+# mv /tmp/win/installer/Driver/definitions/Desktop/ARM64/Internal/*.xml /tmp/win/installer/Driver/definitions/Desktop/ARM64/Internal/sog.xml
 ui_print "*-----------------------------------------------*"
 ui_print "*               Flashing UEFI image             *"
 rm /sdcard/UEFI/*.img
@@ -115,7 +134,7 @@ dd if=/tmp/win/installer/pe.img of=$part_esp bs=8M
 dd if=/tmp/win/installer/uefi.img of=/dev/block/by-name/boot$(getprop ro.boot.slot_suffix) bs=8M
 umount /dev/block/by-name/{esp,win,cust}
 sleep 1
-ui_print "*************************************************"
+ui_print "================================================*"
 ui_print "*              Flashing Completed               *"
 ui_print "*                                               *"
 ui_print "*        Now reboot to start Installation       *"
@@ -126,5 +145,5 @@ ui_print "*      If it fails, Don't Flash it again        *"
 ui_print "*                                               *"
 ui_print "*    ask for help on Telegram: @wininstaller    *"
 ui_print "*                                               *"
-ui_print "*************************************************"
+ui_print "================================================*"
 exit
