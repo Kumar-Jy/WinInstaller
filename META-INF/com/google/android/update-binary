@@ -185,6 +185,7 @@ else
         umount $part_win
     else
         ui_print "No ESD or WIM files found anywhere."
+        umount $part_win
         exit 1
     fi
 fi
