@@ -152,40 +152,46 @@ else
 fi
 
 WIN_IMAGE=""
-if ls /sdcard/Download/*.esd 1> /dev/null 2>&1; then
-    WIN_IMAGE=$(ls /sdcard/Download/*.esd | head -n 1)
-    ui_print "ESD file found at $WIN_IMAGE"
-elif ls /sdcard/Download/*.wim 1> /dev/null 2>&1; then
-    WIN_IMAGE=$(ls /sdcard/Download/*.wim | head -n 1)
-    ui_print "WIM file found at $WIN_IMAGE"
-elif ls /external_sd/WOA/*.esd 1> /dev/null 2>&1; then
-    WIN_IMAGE=$(ls /external_sd/WOA/*.esd | head -n 1)
-    ui_print "ESD file found at $WIN_IMAGE"
-elif ls /external_sd/WOA/*.wim 1> /dev/null 2>&1; then
-    WIN_IMAGE=$(ls /external_sd/WOA/*.wim | head -n 1)
-    ui_print "WIM file found at $WIN_IMAGE"
-elif ls /usbstorage/WOA/*.esd 1> /dev/null 2>&1; then
-    WIN_IMAGE=$(ls /usbstorage/WOA/*.esd | head -n 1)
-    ui_print "ESD file found at $WIN_IMAGE"
-elif ls /usbstorage/WOA/*.wim 1> /dev/null 2>&1; then
-    WIN_IMAGE=$(ls /usbstorage/WOA/*.wim | head -n 1)
-    ui_print "WIM file found at $WIN_IMAGE"
-elif ls /usb_otg/WOA/*.esd 1> /dev/null 2>&1; then
-    WIN_IMAGE=$(ls /usb_otg/WOA/*.esd | head -n 1)
-    ui_print "ESD file found at $WIN_IMAGE"
-elif ls /usb_otg/WOA/*.wim 1> /dev/null 2>&1; then
-    WIN_IMAGE=$(ls /usb_otg/WOA/*.wim | head -n 1)
-    ui_print "WIM file found at $WIN_IMAGE"
-else
+
+# Function to search for image recursively
+search_image() {
+    local search_dir="$1"
+    # ui_print "Searching in $search_dir..."
+    WIN_IMAGE=$(find "$search_dir" -type f \( -name "*.esd" -o -name "*.wim" \) ! -path "*/Android/*" | head -n 1)
+    if [ -n "$WIN_IMAGE" ]; then
+        ui_print "Windows Image found at $WIN_IMAGE"
+    fi
+}
+
+# Search in default directories first
+search_image "/sdcard/Download"
+search_image "/external_sd/WOA"
+search_image "/usbstorage/WOA"
+search_image "/usb_otg/WOA"
+
+# If no image found, search recursively in all directories, skipping "Android" becuse lol
+if [ -z "$WIN_IMAGE" ]; then
+    for dir in /sdcard /external_sd /usbstorage /usb_otg; do
+        if [ -d "$dir" ]; then
+            search_image "$dir"
+            [ -n "$WIN_IMAGE" ] && break
+        fi
+    done
+fi
+
+# If still no image found, check mounted Windows partition
+if [ -z "$WIN_IMAGE" ]; then
     mkdir -p /tmp/win
-    umount $part_win
-    mount.ntfs $part_win /tmp/win
+    ui_print "Mounting Windows partition..."
+    umount "$part_win" 2>/dev/null
+    mount.ntfs "$part_win" /tmp/win || { ui_print "Failed to mount $part_win"; exit 1; }
+    
     if [ -f /tmp/win/Windows/explorer.exe ]; then
         ui_print "Windows is already installed. Processing for drivers update."
-        umount $part_win
+        umount /tmp/win
     else
-        ui_print "No ESD or WIM files found anywhere."
-        umount $part_win
+        ui_print "No ESD or WIM files found anywhere. Ensure the file exists on your devices."
+        umount /tmp/win
         exit 1
     fi
 fi
