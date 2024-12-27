@@ -54,8 +54,8 @@ for part in boot$(getprop ro.boot.slot_suffix) dtbo$(getprop ro.boot.slot_suffix
 done
 mkdir -p /{sdcard,external_sd/WOA,usbstorage/WOA,usb_otg/WOA}/backup
 for dir in /sdcard /external_sd/WOA /usbstorage/WOA /usb_otg/WOA; do
-    cp -r -n /cache/backup "$dir"
-	done
+    cp -r -n /cust/backup "$dir"
+done
 ui_print "*-----------------------------------------------*"
 ui_print "*   Checking if Windows is already installed    *"
 mkdir -p /tmp/win
