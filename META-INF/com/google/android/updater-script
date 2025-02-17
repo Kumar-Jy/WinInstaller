@@ -2,20 +2,69 @@
 #
 # Copyright (C) 2023-24 https://github.com/Kumar-Jy
 #
-# Made for WINDOWS Installation on Xiaomi Pad 5 (Nabu) 
+# Made for WINDOWS Installation on ........ 
 #
-if [ "$(getprop ro.product.device)" != "nabu" ]; then 
-ui_print "This script is only for NABU devices."
+if [ "$(getprop ro.product.device)" != "....." ]; then 
+ui_print "This script is only for ..... devices."
 ui_print "Your device is $(getprop ro.product.device)." 
 exit 1
 fi
 
-show_progress 1.34 125;
-ui_print "================================================*"
-ui_print "* Welcome to Windows Installation on $(getprop ro.product.model)   *"
-ui_print "*         This Script is only for $(getprop ro.product.device)          *"
-ui_print "*      Made by Kumar_Jy and Tweaks by ArKT      *"
-ui_print "================================================*"
+show_progress 1.34 150;
+ui_print "*===============================================*"
+ui_print "*   Welcome to Windows Installation on .......  *"
+ui_print "*        Version: WinInstaller_......_.....     *"
+ui_print "*        Date   : 17-Feb-2025                   *"
+ui_print "*        Made by: Kumar_Jy                      *"
+ui_print "*  Help and suggestions: ArKT, Sog, Andre_grams *"
+ui_print "*Drivers & UEFI: Project-Aloha,.....,.......,...*"
+ui_print "*===============================================*"
+ui_print "*           Verifying Partition Size            *"
+part_win="/dev/block/by-name/win"
+part_esp="/dev/block/by-name/esp"
+part_userdata="/dev/block/by-name/userdata"
+UEFI=".......img"
+winname="WIN...."
+round() {
+    echo $(awk "BEGIN {print int($1 + 0.5)}")
+}
+
+if [ -e $part_win ] && [ -e $part_esp ]; then
+    WIN_SIZE_BYTES=$(blockdev --getsize64 $part_win)
+    ESP_SIZE_BYTES=$(blockdev --getsize64 $part_esp)
+    USERDATA_SIZE_BYTES=$(blockdev --getsize64 $part_userdata)
+    
+    WIN_SIZE=$(awk "BEGIN {print $WIN_SIZE_BYTES / (1000 * 1000 * 1000)}")
+    ESP_SIZE=$(awk "BEGIN {print $ESP_SIZE_BYTES / (1000 * 1000)}")
+    USERDATA_SIZE=$(awk "BEGIN {print $USERDATA_SIZE_BYTES / (1000 * 1000 * 1000)}")
+    
+    WIN_SIZE_ROUNDED=$(round $WIN_SIZE)
+    ESP_SIZE_ROUNDED=$(round $ESP_SIZE)
+    USERDATA_SIZE_ROUNDED=$(round $USERDATA_SIZE)
+    
+    if (( WIN_SIZE_ROUNDED >= 30 && ESP_SIZE_ROUNDED >= 350 )); then
+        ui_print "USERDATA_SIZE: ${USERDATA_SIZE_ROUNDED}GB"
+        ui_print "WIN_SIZE: ${WIN_SIZE_ROUNDED}GB"
+        ui_print "ESP_SIZE: ${ESP_SIZE_ROUNDED}MB"
+    else
+        ui_print "At least 30GB for WIN partition and 350MB for ESP partition are required."
+        exit 1
+    fi
+else
+    ui_print "Required partitions (WIN or ESP) do not exist."
+    exit 1
+fi
+ui_print "*-----------------------------------------------*"
+ui_print "*            Checking Battery Status            *"
+battery_percentage=$(cat /sys/class/power_supply/battery/capacity)
+
+if [ "$battery_percentage" -lt 50 ]; then
+    ui_print "Battery is below 50%, exiting..."
+    exit 1
+else
+    ui_print "Battery percentage is sufficient: $battery_percentage%"
+fi
+ui_print "*-----------------------------------------------*"
 ui_print "*                  Fixing GPT                   *"
 GDISK_BINARY="/tmp/gdisk"
 
@@ -44,61 +93,122 @@ for i in a b c d e f; do
     run_gdisk "$DEVICE"
 done
 ui_print "*-----------------------------------------------*"
-ui_print "*  extracting boot and modem to /sdcard/backup  *"
+ui_print "*  Extracting boot and modem to /sdcard/backup  *"
 umount /dev/block/by-name/cust
 mke2fs -t ext2 /dev/block/by-name/cust
 mount /dev/block/by-name/cust /cust
 mkdir -p /cust/backup
 for part in boot$(getprop ro.boot.slot_suffix) dtbo$(getprop ro.boot.slot_suffix) fsc fsg modemst1 modemst2; do  
-  dd if=/dev/block/by-name/$part of=/cust/backup/$part.img bs=8M
+    dd if=/dev/block/by-name/$part of=/cust/backup/$part.img bs=8M
 done
+
 mkdir -p /{sdcard,external_sd/WOA,usbstorage/WOA,usb_otg/WOA}/backup
 for dir in /sdcard /external_sd/WOA /usbstorage/WOA /usb_otg/WOA; do
     cp -r -n /cust/backup "$dir"
 done
+
 ui_print "*-----------------------------------------------*"
 ui_print "*   Checking if Windows is already installed    *"
+ui_print "*-----------------------------------------------*"
 mkdir -p /tmp/win
 umount $part_win
 mount.ntfs $part_win /tmp/win
 if [ -f /tmp/win/Windows/explorer.exe ]; then
-    ui_print "*           Windows is already installed.       *"
-	ui_print "*          Skipping format and copy steps.      *"
+    ui_print "*          Windows is already installed         *"
+    ui_print "*         Skipping format and copy steps        *"
+    ui_print "*    and processing for Drivers Installation    *"
+   ui_print "*-----------------------------------------------*"
+   ui_print "*       Checking if Windows is Read-Only        *"
+   ui_print "*-----------------------------------------------*" 
+   if touch /tmp/win/testfile 2>/dev/null && rm /tmp/win/testfile; then  
+     ui_print "*         Skipping format and copy steps        *"
+     ui_print "*    and processing for Drivers Installation    *"
+   else  
+     umount $part_win
+     ui_print "Error: Windows partition is read-only. Boot into Windows, reboot back to recovery, and try again, or open a terminal and type 'format' to format the WIN and ESP partitions." >&2
+     exit 1
+   fi
 else
-	ui_print "*-----------------------------------------------*"
-	ui_print "*             Windows is not installed          *"
-	ui_print "*-----------------------------------------------*"
-    umount $part_win
-    mkfs.ntfs -f $part_win -L WINABU
-	
-	package_extract_file "wimlib-imagex" "/tmp/wimlib-imagex"
+    ui_print "*        Windows is not already installed       *"
+    ui_print "*       Proceeding with Windows Installation    *"
+    ui_print "*-----------------------------------------------*"
+    ui_print "*           Searching for Windows Image         *"
+    
+    WIN_IMAGE=""
+
+search_image() {
+    local search_dir="$1"
+    [ -n "$WIN_IMAGE" ] && return
+    WIN_IMAGE=$(find "$search_dir" -type f \( -name "*.esd" -o -name "*.wim" \) ! -path "*/Android/*" | head -n 1)
+    [ -n "$WIN_IMAGE" ] && ui_print "Windows Image found at $WIN_IMAGE"
+}
+
+# Search in default directories
+for dir in /sdcard/Download /external_sd/WOA /usbstorage/WOA /usb_otg/WOA; do
+    search_image "$dir"
+    [ -n "$WIN_IMAGE" ] && break
+done
+
+# If not found, search recursively
+[ -z "$WIN_IMAGE" ] && for dir in /sdcard /external_sd /usbstorage /usb_otg; do
+    [ -d "$dir" ] && search_image "$dir" && [ -n "$WIN_IMAGE" ] && break
+done
+
+# Check mounted Windows partition if still not found
+if [ -z "$WIN_IMAGE" ]; then
+    mkdir -p /tmp/win
+    ui_print "Mounting Windows partition..."
+    umount "$part_win" 2>/dev/null
+    mount.ntfs "$part_win" /tmp/win || { ui_print "Failed to mount $part_win"; exit 1; }
+    
+    if [ -f /tmp/win/Windows/explorer.exe ]; then
+        ui_print "Windows installed. Processing drivers update."
+        umount $part_win
+    else
+        ui_print "No ESD/WIM files found. Ensure file exists."
+        umount $part_win
+        exit 1
+    fi
+fi
+    ui_print "*-----------------------------------------------*"
+    ui_print "*           Verifying Windows Edition           *"
+    WINDOWS_EDITIONS=("Windows 11 Pro" "Windows 11 IoT Enterprise LTSC" "Windows 11 Enterprise" "Windows 11 Home" "Windows 10 Pro" "Windows 10 Home")
+	mkdir -p /tmp
+    package_extract_file "wimlib-imagex" "/tmp/wimlib-imagex"
     chmod 0777 /tmp/wimlib-imagex
     /tmp/wimlib-imagex info "$WIN_IMAGE" > /tmp/wim_info.txt
-	for EDITION in "${WINDOWS_EDITIONS[@]}"; do
-		INDEX=$(grep -B 1 "$EDITION" /tmp/wim_info.txt | awk '/Index/ {print $2; exit}')
-		if [[ -n "$INDEX" ]]; then
-			SELECTED_INDEX="$INDEX"
-			SELECTED_EDITION="$EDITION"
-			break
-			fi
-done
-	
-	ui_print "* Applying Index No $SELECTED_INDEX for $SELECTED_EDITION using Wimlib*"
+    
+    for EDITION in "${WINDOWS_EDITIONS[@]}"; do
+        INDEX=$(grep -B 1 "$EDITION" /tmp/wim_info.txt | awk '/Index/ {print $2; exit}')
+        if [[ -n "$INDEX" ]]; then
+            SELECTED_INDEX="$INDEX"
+            SELECTED_EDITION="$EDITION"
+            ui_print "* $SELECTED_EDITION found at Index No $SELECTED_INDEX *" 
+            break
+        fi
+    done
 
-	/tmp/wimlib-imagex apply "$WIN_IMAGE" "$SELECTED_INDEX" "$part_win"
-	
-	ui_print "*-----------------------------------------------*"
-	ui_print "* $SELECTED_EDITION applied Successfully from $WIN_IMAGE *"
+    ui_print "*-----------------------------------------------*"
+    ui_print " Applying $SELECTED_EDITION using Wimlib-Imagex....."
+    umount $part_win
+    mkfs.ntfs -f $part_win -L $winname
+    /tmp/wimlib-imagex apply "$WIN_IMAGE" "$SELECTED_INDEX" "$part_win"
 fi
 
 mount.ntfs $part_win /tmp/win
 if [ -f /tmp/win/Windows/explorer.exe ]; then
-    ui_print "                                                *"
+    ui_print "*                                               *"
 else
+    ui_print " Wimlib-imagex failed to apply $SELECTED_EDITION "
+    ui_print " Your downloaded ESD/WIM image may be corrupted..."
+    ui_print " Press and hold the power button to force reboot and check the ESD/WIM image."
+    sleep 15
+    ui_print " Oh... you haven't rebooted it yet..."
+    ui_print " Proceeding with DISM in WinPE..."
     ui_print "*-----------------------------------------------*"
-    ui_print "*         Unmount and format partitions         *"
+    ui_print "*       Unmounting and formatting partitions    *"
     umount $part_win
-    mkfs.ntfs -f $part_win -L WINNABU
+    mkfs.ntfs -f $part_win -L $winname
     ui_print "*-----------------------------------------------*"
     ui_print "*              Mounting partitions              *"
     mkdir -p /tmp/win
@@ -106,24 +216,24 @@ else
     ui_print "*-----------------------------------------------*"
     ui_print "*              Copying Windows Image            *"
     mkdir -p /tmp/win/installer/Driver
-	if [[ "$WIN_IMAGE" == *.esd ]]; then
-		copy_with_progress "$WIN_IMAGE" /tmp/win/installer/install.esd
-		ui_print "ESD file copied from $WIN_IMAGE to /tmp/win/installer/install.esd"
-	elif [[ "$WIN_IMAGE" == *.wim ]]; then
-		copy_with_progress "$WIN_IMAGE" /tmp/win/installer/install.wim
-		ui_print "WIM file copied from $WIN_IMAGE to /tmp/win/installer/install.wim"
-	fi
+    if [[ "$WIN_IMAGE" == *.esd ]]; then
+        copy_with_progress "$WIN_IMAGE" /tmp/win/installer/install.esd
+        ui_print "ESD file copied from $WIN_IMAGE to /tmp/win/installer/install.esd"
+    elif [[ "$WIN_IMAGE" == *.wim ]]; then
+        copy_with_progress "$WIN_IMAGE" /tmp/win/installer/install.wim
+        ui_print "WIM file copied from $WIN_IMAGE to /tmp/win/installer/install.wim"
+    fi
 fi
+
 ui_print "*-----------------------------------------------*"
 ui_print "*          Extracting installation files        *"
 mkdir -p /tmp/win/installer/Driver
-for file in Driver.zip pe.img uefi.img install.bat sta.exe; do  
-  package_extract_file "$file" "/tmp/win/installer/$file"
+for file in Driver.zip pe.img $uefi install.bat sta.exe; do  
+    package_extract_file "$file" "/tmp/win/installer/$file"
 done
 package_extract_file "Toolbox.zip" "/tmp/win/Toolbox.zip"
-package_extract_file "woahelper30.apk" "/sdcard/Download/woahelper30.apk"
+package_extract_file "woahelper.apk" "/sdcard/Download/woahelper.apk"
 unzip /tmp/win/installer/Driver.zip -d /tmp/win/installer/Driver
-# mv /tmp/win/installer/Driver/definitions/Desktop/ARM64/Internal/*.xml /tmp/win/installer/Driver/definitions/Desktop/ARM64/Internal/sog.xml
 ui_print "*-----------------------------------------------*"
 ui_print "*               Flashing UEFI image             *"
 rm /sdcard/UEFI/*.img
@@ -134,10 +244,8 @@ dd if=/tmp/win/installer/pe.img of=$part_esp bs=8M
 dd if=/tmp/win/installer/uefi.img of=/dev/block/by-name/boot$(getprop ro.boot.slot_suffix) bs=8M
 umount /dev/block/by-name/{esp,win,cust}
 sleep 1
-ui_print "================================================*"
-ui_print "*              Flashing Completed               *"
-ui_print "*                                               *"
-ui_print "*        Now reboot to start Installation       *"
+ui_print "*===============================================*"
+ui_print "*   Flashing Completed, Now reboot to system    *"
 ui_print "*                                               *"
 ui_print "*     Installation will start automatically     *"
 ui_print "*                                               *"
@@ -145,5 +253,6 @@ ui_print "*      If it fails, Don't Flash it again        *"
 ui_print "*                                               *"
 ui_print "*    ask for help on Telegram: @wininstaller    *"
 ui_print "*                                               *"
-ui_print "================================================*"
+ui_print "*   Thanks to all WOA Developers & Maintainers  *"
+ui_print "*===============================================*"
 exit
