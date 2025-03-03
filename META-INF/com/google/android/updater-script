@@ -80,16 +80,13 @@ for i in a b c d e f; do
 done
 ui_print "*-----------------------------------------------*"
 ui_print "*  Extracting boot and modem to /sdcard/backup  *"
-umount $path/cache
-mke2fs -t ext4 $path/cache
-mount $path/cache /cache
-mkdir -p /cache/backup
+mkdir -p /tmp/backup
 for part in boot$(getprop ro.boot.slot_suffix) dtbo$(getprop ro.boot.slot_suffix) fsc fsg modemst1 modemst2 persist; do  
-    dd if=$path/$part of=/cache/backup/$part.img bs=8M
+    dd if=$path/$part of=/tmp/backup/$part.img bs=8M
 done
 mkdir -p /{sdcard,external_sd/WOA,usbstorage/WOA,usb_otg/WOA}/backup
 for dir in /sdcard /external_sd/WOA /usbstorage/WOA /usb_otg/WOA; do
-    cp -r -n /cache/backup "$dir"
+    cp -r -n /tmp/backup "$dir"
 done
 ui_print "*-----------------------------------------------*"
 ui_print "*   Checking if Windows is already installed    *"
