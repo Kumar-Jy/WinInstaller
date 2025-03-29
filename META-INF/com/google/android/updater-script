@@ -15,28 +15,39 @@ show_progress 1.34 150;
 ui_print "*===============================================*"
 ui_print "*   Welcome to Windows Installation on .......  *"
 ui_print "*        Version: WinInstaller_......_.....     *"
-ui_print "*        Date   : 17-Feb-2025                   *"
+ui_print "*        Date   : 25-Feb-2025                   *"
 ui_print "*        Made by: Kumar_Jy                      *"
 ui_print "*  Help and suggestions: ArKT, Sog, Andre_grams *"
 ui_print "*Drivers & UEFI: Project-Aloha,.....,.......,...*"
 ui_print "*===============================================*"
 ui_print "*           Verifying Partition Size            *"
-ui_print "*           Verifying Partition Size            *"
-round() { echo $(awk "BEGIN {print int($1 + 0.5)}") }
-if [ -e $path/win ] && [ -e $path/esp ]; then
-    WIN_SIZE=$(round $(blockdev --getsize64 $path/win) / (1000 * 1000 * 1000))
-    ESP_SIZE=$(round $(blockdev --getsize64 $path/esp) / (1000 * 1000))
-    USERDATA_SIZE=$(round $(blockdev --getsize64 $path/userdata) / (1000 * 1000 * 1000))
-    if [ "$WIN_SIZE" -ge 30 ] && [ "$ESP_SIZE" -ge 350 ]; then
-        ui_print "USERDATA_SIZE: ${USERDATA_SIZE}GB"
-        ui_print "WIN_SIZE: ${WIN_SIZE}GB"
-        ui_print "ESP_SIZE: ${ESP_SIZE}MB"
+round() {
+    echo $(awk "BEGIN {print int($1 + 0.5)}")
+}
+
+if [ -e "$path/win" ] && [ -e "$path/esp" ]; then
+    WIN_SIZE_BYTES=$(blockdev --getsize64 "$path/win")
+    ESP_SIZE_BYTES=$(blockdev --getsize64 "$path/esp")
+    USERDATA_SIZE_BYTES=$(blockdev --getsize64 "$path/userdata")
+    
+    WIN_SIZE=$(awk "BEGIN {print $WIN_SIZE_BYTES / (1000 * 1000 * 1000)}")  # In GB
+    ESP_SIZE=$(awk "BEGIN {print $ESP_SIZE_BYTES / (1000 * 1000)}")  # In MB
+    USERDATA_SIZE=$(awk "BEGIN {print $USERDATA_SIZE_BYTES / (1000 * 1000 * 1000)}")  # In GB
+    
+    WIN_SIZE_ROUNDED=$(round "$WIN_SIZE")
+    ESP_SIZE_ROUNDED=$(round "$ESP_SIZE")
+    USERDATA_SIZE_ROUNDED=$(round "$USERDATA_SIZE")
+    
+    if [ "$WIN_SIZE_ROUNDED" -ge 30 ] && [ "$ESP_SIZE_ROUNDED" -ge 350 ]; then
+        ui_print "* USERDATA_SIZE: ${USERDATA_SIZE_ROUNDED}GB"
+        ui_print "* WIN_SIZE: ${WIN_SIZE_ROUNDED}GB"
+        ui_print "* ESP_SIZE: ${ESP_SIZE_ROUNDED}MB"
     else
-        ui_print "At least 30GB for WIN and 350MB for ESP required."
+        ui_print "At least 30GB for WIN partition and 350MB for ESP partition are required."
         exit 1
     fi
 else
-    ui_print "Required partitions (WIN or ESP) missing."
+    ui_print "Required partitions (WIN or ESP) do not exist."
     exit 1
 fi
 ui_print "*-----------------------------------------------*"
@@ -44,7 +55,8 @@ ui_print "*            Checking Battery Status            *"
 battery_percentage=$(cat /sys/class/power_supply/battery/capacity)
 
 if [ "$battery_percentage" -le 50 ]; then
-    ui_print "Battery is below 50%, exiting..."
+    ui_print "Your battery is only "$battery_percentage" % Charged"
+    ui_print " It Should be at least 50% Charged, exiting..."
     exit 1
 else
     ui_print "Battery percentage is sufficient: $battery_percentage%"
@@ -114,35 +126,68 @@ else
     ui_print "*       Proceeding with Windows Installation    *"
     ui_print "*-----------------------------------------------*"
     ui_print "*           Searching for Windows Image         *"
+    
     WIN_IMAGE=""
+
+    # Function to search for image recursively
     search_image() {
         local search_dir="$1"
-        [ -n "$WIN_IMAGE" ] && return
+        [ -n "$WIN_IMAGE" ] && return # Skip if image already found
         WIN_IMAGE=$(find "$search_dir" -type f \( -name "*.esd" -o -name "*.wim" \) ! -path "*/Android/*" | head -n 1)
-        [ -n "$WIN_IMAGE" ] && ui_print "Windows Image found at $WIN_IMAGE"
+        if [ -n "$WIN_IMAGE" ]; then
+            ui_print "Windows Image found at $WIN_IMAGE"
+        fi
     }
-    # Search in predefined directories
-    for dir in /sdcard/Download /external_sd/WOA /usbstorage/WOA /usb_otg/WOA; do
-        search_image "$dir" && [ -n "$WIN_IMAGE" ] && break
-    done
-    # If not found, search recursively
-    [ -z "$WIN_IMAGE" ] && for dir in /sdcard /external_sd /usbstorage /usb_otg; do
-        [ -d "$dir" ] && search_image "$dir" && [ -n "$WIN_IMAGE" ] && break
-    done
-    # Print error message if no Windows image found
+
+    # Search in default directories first
+    search_image "/sdcard/Download"
+    search_image "/external_sd/WOA"
+    search_image "/usbstorage/WOA"
+    search_image "/usb_otg/WOA"
+    
+    # If no image found, search recursively in all directories
     if [ -z "$WIN_IMAGE" ]; then
-        ui_print "No ESD/WIM files found. Ensure file exists."
-        exit 1
+        for dir in /sdcard /external_sd /usbstorage /usb_otg; do
+            if [ -d "$dir" ]; then
+                search_image "$dir"
+                [ -n "$WIN_IMAGE" ] && break
+            fi
+        done
+    fi
+    
+    # If still no image found, check mounted Windows partition
+    if [ -z "$WIN_IMAGE" ]; then
+        mkdir -p /tmp/win
+        ui_print "Mounting Windows partition..."
+        umount "$path/win" 2>/dev/null
+        mount.ntfs "$path/win" /tmp/win || { ui_print "Failed to mount $path/win"; exit 1; }
+        
+        if [ -f /tmp/win/Windows/explorer.exe ]; then
+            ui_print "Windows is already installed. Processing drivers update."
+            umount $path/win
+        else
+            ui_print "No ESD or WIM files found anywhere. Ensure the file exists on your device."
+            umount $path/win
+            exit 1
+        fi
     fi
 
     ui_print "*-----------------------------------------------*"
     ui_print "*           Verifying Windows Edition           *"
-    WINDOWS_EDITIONS=("Windows 11 Pro" "Windows 11 IoT Enterprise LTSC" "Windows 11 Enterprise" "Windows 11 Home" "Windows 10 Pro" "Windows 10 Home")
-	mkdir -p /tmp
+    mkdir -p /tmp
     package_extract_file "wimlib-imagex" "/tmp/wimlib-imagex"
     chmod 0777 /tmp/wimlib-imagex
     /tmp/wimlib-imagex info "$WIN_IMAGE" > /tmp/wim_info.txt
     
+	WINDOWS_EDITIONS=(
+        "Windows 11 Pro"
+        "Windows 11 IoT Enterprise LTSC"
+		"Windows 11 Enterprise"
+        "Windows 11 Home"
+		"Windows 10 Pro"
+		"Windows 10 Home"
+    )
+	
     for EDITION in "${WINDOWS_EDITIONS[@]}"; do
         INDEX=$(grep -B 1 "$EDITION" /tmp/wim_info.txt | awk '/Index/ {print $2; exit}')
         if [[ -n "$INDEX" ]]; then
@@ -157,7 +202,7 @@ else
     ui_print " Applying $SELECTED_EDITION using Wimlib-Imagex....."
     umount $path/win
     mkfs.ntfs -f $path/win -L $WINNAME
-    /tmp/wimlib-imagex apply "$WIN_IMAGE" "$SELECTED_INDEX" $path/win
+    /tmp/wimlib-imagex apply "$WIN_IMAGE" "$SELECTED_INDEX" "$path/win"
 fi
 
 mount.ntfs $path/win /tmp/win
@@ -170,7 +215,6 @@ else
     umount $path/win
     exit 1
 fi
-
 ui_print "*-----------------------------------------------*"
 ui_print "*          Extracting installation files        *"
 package_extract_folder "installer" "/tmp/win"
@@ -184,7 +228,7 @@ dd if=/tmp/win/installer/uefi.img of=/sdcard/UEFI/uefi.img bs=8M
 dd if=/sdcard/backup/boot$(getprop ro.boot.slot_suffix).img of=/tmp/win/boot.img bs=64M
 dd if=/tmp/win/installer/pe.img of=$path/esp bs=8M
 dd if=/tmp/win/installer/uefi.img of=$path/boot$(getprop ro.boot.slot_suffix) bs=8M
-umount $path/{esp,win,cache}
+umount $path/{esp,win}
 sleep 1
 ui_print "*===============================================*"
 ui_print "*   Flashing Completed, Now reboot to system    *"
