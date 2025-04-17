@@ -1,6 +1,6 @@
 #!/sbin/bash
 #
-# Copyright (C) 2023-24 https://github.com/Kumar-Jy
+# Copyright (C) 2023-24-25 https://github.com/Kumar-Jy
 #
 # Made for WINDOWS Installation on ........ 
 #
@@ -10,12 +10,12 @@ ui_print "Your device is $(getprop ro.product.device)."
 exit 1
 fi
 path="/dev/block/by-name"
-WINNAME="WINVAYU"
+WINNAME="........."
 show_progress 1.34 150;
 ui_print "*===============================================*"
 ui_print "*   Welcome to Windows Installation on .......  *"
 ui_print "*        Version: WinInstaller_......_.....     *"
-ui_print "*        Date   : 25-Feb-2025                   *"
+ui_print "*        Date   : 17-Apr-2025                   *"
 ui_print "*        Made by: Kumar_Jy                      *"
 ui_print "*  Help and suggestions: ArKT, Sog, Andre_grams *"
 ui_print "*Drivers & UEFI: Project-Aloha,.....,.......,...*"
@@ -37,33 +37,35 @@ if [ -e "$path/win" ] && [ -e "$path/esp" ]; then
     WIN_SIZE_ROUNDED=$(round "$WIN_SIZE")
     ESP_SIZE_ROUNDED=$(round "$ESP_SIZE")
     USERDATA_SIZE_ROUNDED=$(round "$USERDATA_SIZE")
-    
-    if [ "$WIN_SIZE_ROUNDED" -ge 30 ] && [ "$ESP_SIZE_ROUNDED" -ge 350 ]; then
-        ui_print "* USERDATA_SIZE: ${USERDATA_SIZE_ROUNDED}GB"
-        ui_print "* WIN_SIZE: ${WIN_SIZE_ROUNDED}GB"
-        ui_print "* ESP_SIZE: ${ESP_SIZE_ROUNDED}MB"
+	
+    ui_print " USERDATA_SIZE: ${USERDATA_SIZE_ROUNDED}GB"
+    ui_print " WIN_SIZE: ${WIN_SIZE_ROUNDED}GB"
+    ui_print " ESP_SIZE: ${ESP_SIZE_ROUNDED}MB"
+
+    if [ "$WIN_SIZE_ROUNDED" -ge 50 ] && [ "$ESP_SIZE_ROUNDED" -ge 349 ]; then
+        ui_print "* Partition size meets requirements.       "
     else
-        ui_print "At least 30GB for WIN partition and 350MB for ESP partition are required."
+        ui_print "*Partition size doesn't meet requirements. "
+		ui_print "At least 30GB for WIN partition and 350MB for ESP partition are required."
         exit 1
     fi
 else
-    ui_print "Required partitions (WIN or ESP) do not exist."
+    ui_print "Required partitions (WIN and ESP) do not exist."
     exit 1
 fi
 ui_print "*-----------------------------------------------*"
 ui_print "*            Checking Battery Status            *"
 battery_percentage=$(cat /sys/class/power_supply/battery/capacity)
-
-if [ "$battery_percentage" -le 50 ]; then
-    ui_print "Your battery is only "$battery_percentage" % Charged"
-    ui_print " It Should be at least 50% Charged, exiting..."
+if [ "$battery_percentage" -le 20 ]; then
+    ui_print "Battery is below 50%, exiting..."
     exit 1
 else
     ui_print "Battery percentage is sufficient: $battery_percentage%"
 fi
+
 ui_print "*-----------------------------------------------*"
-ui_print "*                  Fixing GPT                   *"
-mkdir -p/tmp
+ui_print "*                   Fixing GPT                  *"
+mkdir -p /tmp
 GDISK_BINARY="/tmp/gdisk"
 
 setup_gdisk() {
@@ -96,81 +98,49 @@ mkdir -p /tmp/backup
 for part in boot$(getprop ro.boot.slot_suffix) dtbo$(getprop ro.boot.slot_suffix) fsc fsg modemst1 modemst2 persist; do  
     dd if=$path/$part of=/tmp/backup/$part.img bs=8M
 done
+
 mkdir -p /{sdcard,external_sd/WOA,usbstorage/WOA,usb_otg/WOA}/backup
-for dir in /sdcard /external_sd/WOA /usbstorage/WOA /usb_otg/WOA; do
-    cp -r -n /tmp/backup "$dir"
+for j in /sdcard /external_sd/WOA /usbstorage/WOA /usb_otg/WOA; do
+    cp -r -n /tmp/backup "$j"
 done
+
 ui_print "*-----------------------------------------------*"
 ui_print "*   Checking if Windows is already installed    *"
 ui_print "*-----------------------------------------------*"
 mkdir -p /tmp/win
 umount $path/win
-mount.ntfs $path/win /tmp/win
+mount.ntfs "$path/win" /tmp/win || { ui_print "Failed to mount $path/win"; exit 1; }
+
 if [ -f /tmp/win/Windows/explorer.exe ]; then
     ui_print "*          Windows is already installed         *"
+	touch /tmp/win/testfile 2>/dev/null && rm /tmp/win/testfile || { 
+		ui_print "Error: Partition is Read-Only, Goto Windows then reboot to Android and try again" >&2
+		umount $path/win
+		exit 1
+	}
     ui_print "*         Skipping format and copy steps        *"
     ui_print "*    and processing for Drivers Installation    *"
-   ui_print "*-----------------------------------------------*"
-   ui_print "*       Checking if Windows is Read-Only        *"
-   ui_print "*-----------------------------------------------*" 
-   if touch /tmp/win/testfile 2>/dev/null && rm /tmp/win/testfile; then  
-     ui_print "*         Skipping format and copy steps        *"
-     ui_print "*    and processing for Drivers Installation    *"
-   else  
-     umount $path/win
-     ui_print "Error: Windows partition is read-only. Boot into Windows, reboot back to recovery, and try again, or open a terminal and type 'format' to format the WIN and ESP partitions." >&2
-     exit 1
-   fi
 else
     ui_print "*        Windows is not already installed       *"
     ui_print "*       Proceeding with Windows Installation    *"
     ui_print "*-----------------------------------------------*"
     ui_print "*           Searching for Windows Image         *"
-    
-    WIN_IMAGE=""
+	for depth in "-maxdepth 1" ""; do
+		for dir in /sdcard/Download /external_sd/WOA /usbstorage/WOA /usb_otg/WOA \
+				/sdcard /external_sd /usbstorage /usb_otg; do
+			WIN_IMAGE=$(find "$dir" $depth -type f \( -iname "*.esd" -o -iname "*.wim" \) \
+					! -path "*/Android/*" 2>/dev/null | head -n 1)
+			[ -n "$WIN_IMAGE" ] && break 2
+		done
+	done
 
-    # Function to search for image recursively
-    search_image() {
-        local search_dir="$1"
-        [ -n "$WIN_IMAGE" ] && return # Skip if image already found
-        WIN_IMAGE=$(find "$search_dir" -type f \( -name "*.esd" -o -name "*.wim" \) ! -path "*/Android/*" | head -n 1)
-        if [ -n "$WIN_IMAGE" ]; then
-            ui_print "Windows Image found at $WIN_IMAGE"
-        fi
-    }
-
-    # Search in default directories first
-    search_image "/sdcard/Download"
-    search_image "/external_sd/WOA"
-    search_image "/usbstorage/WOA"
-    search_image "/usb_otg/WOA"
-    
-    # If no image found, search recursively in all directories
-    if [ -z "$WIN_IMAGE" ]; then
-        for dir in /sdcard /external_sd /usbstorage /usb_otg; do
-            if [ -d "$dir" ]; then
-                search_image "$dir"
-                [ -n "$WIN_IMAGE" ] && break
-            fi
-        done
-    fi
-    
-    # If still no image found, check mounted Windows partition
-    if [ -z "$WIN_IMAGE" ]; then
-        mkdir -p /tmp/win
-        ui_print "Mounting Windows partition..."
-        umount "$path/win" 2>/dev/null
-        mount.ntfs "$path/win" /tmp/win || { ui_print "Failed to mount $path/win"; exit 1; }
-        
-        if [ -f /tmp/win/Windows/explorer.exe ]; then
-            ui_print "Windows is already installed. Processing drivers update."
-            umount $path/win
-        else
-            ui_print "No ESD or WIM files found anywhere. Ensure the file exists on your device."
-            umount $path/win
-            exit 1
-        fi
-    fi
+	if [ -z "$WIN_IMAGE" ]; then
+		ui_print " ! Windows image (ESD/WIM) not found !"
+		umount $path/win
+		exit 1
+	else
+		ui_print "Found: $WIN_IMAGE"
+	fi
 
     ui_print "*-----------------------------------------------*"
     ui_print "*           Verifying Windows Edition           *"
@@ -197,37 +167,40 @@ else
             break
         fi
     done
+	if [[ -z "$SELECTED_INDEX" ]]; then
+		ui_print "! No matching Windows edition found in $WIN_IMAGE !"
+		umount $path/win
+		exit 1
+	fi
 
     ui_print "*-----------------------------------------------*"
-    ui_print " Applying $SELECTED_EDITION using Wimlib-Imagex....."
+    ui_print " Installing $SELECTED_EDITION ....."
     umount $path/win
     mkfs.ntfs -f $path/win -L $WINNAME
     /tmp/wimlib-imagex apply "$WIN_IMAGE" "$SELECTED_INDEX" "$path/win"
 fi
 
 mount.ntfs $path/win /tmp/win
-if [ -f /tmp/win/Windows/explorer.exe ]; then
-    ui_print "*                                               *"
-else
-    ui_print " Wimlib-imagex failed to apply $SELECTED_EDITION "
-    ui_print " Your downloaded ESD/WIM image may be corrupted..."
-    ui_print " Press and hold the power button to force reboot and check the ESD/WIM image."
+if [ ! -f /tmp/win/Windows/explorer.exe ]; then
+    ui_print "Failed to install $SELECTED_EDITION, ESD/WIM file may be corrupted..."
+    ui_print "Reboot to Android and check the ESD/WIM image."
     umount $path/win
     exit 1
 fi
+
 ui_print "*-----------------------------------------------*"
-ui_print "*          Extracting installation files        *"
+ui_print "*         Extracting Installation File          *"
 package_extract_folder "installer" "/tmp/win"
-package_extract_folder "Toolbox" "/tmp/win"
+package_extract_folder "ToolBox" "/tmp/win"
 package_extract_file "woahelper.apk" "/sdcard/Download/woahelper.apk"
 ui_print "*-----------------------------------------------*"
 ui_print "*               Flashing UEFI image             *"
 rm /sdcard/UEFI/*.img
 mkdir -p /sdcard/UEFI
-dd if=/tmp/win/installer/uefi.img of=/sdcard/UEFI/uefi.img bs=8M
-dd if=/sdcard/backup/boot$(getprop ro.boot.slot_suffix).img of=/tmp/win/boot.img bs=64M
-dd if=/tmp/win/installer/pe.img of=$path/esp bs=8M
-dd if=/tmp/win/installer/uefi.img of=$path/boot$(getprop ro.boot.slot_suffix) bs=8M
+dd if=/tmp/win/installer/uefi.img of=/sdcard/UEFI/uefi.img bs=1M || { umount $path/{esp,win}; ui_print "Error copying uefi.img"; exit 1; }
+dd if=/sdcard/backup/boot$(getprop ro.boot.slot_suffix).img of=/tmp/win/boot.img bs=1M || { umount $path/{esp,win}; ui_print "Error copying boot.img in Windows"; exit 1; }
+dd if=/tmp/win/installer/pe.img of=$path/esp bs=1M || { umount $path/{esp,win}; ui_print "Error flashingh WinPE.img"; exit 1; }
+dd if=/tmp/win/installer/uefi.img of=$path/boot$(getprop ro.boot.slot_suffix) bs=1M || { umount $path/{esp,win}; ui_print "Error flashing uefi on boot partition"; exit 1; }
 umount $path/{esp,win}
 sleep 1
 ui_print "*===============================================*"
