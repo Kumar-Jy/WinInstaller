@@ -5,14 +5,14 @@
 Windows Installer flashable zip [without PC] for supported ARM64 devices.
 
 ### Prerequisites
-- All necessary partition for Windows installation ( such as win and esp) should already be created
+- All necessary partition for Windows ( such as win and esp) should already be created
 -	Ensure the ESP partition size is not smaller then 350MB
 
 ### Preparation
 - Download this repository as a zip and unpack it.
--	Download the pe.img from [here](https://github.com/Kumar-Jy/WinInstaller/releases/download/WinPE/pe.img) and add it to the unpacked folder.
+-	Download the pe.img from [here](https://github.com/Kumar-Jy/WinInstaller/releases/download/WinPE/pe.img) and add it to the /installer folder.
 -	Place the uefi.img of your device in the unpacked folder.
--	Download the Drivers pack for your device, unpack it. Select all files and pack as Driver.zip.
+-	Download the Drivers pack for your device, unpack it. and copy all files/folders in /installer/Driver.
 - Place the modified Driver.zip into the unpacked WinInstaller folder. It should contains Driver.zip, pe.img, uefi.img, and META-INF (all file and folder names are case-sensitive).
 - Select all files/folders and repack them as a zip file. Your WinInstaller.zip is now ready.
 
@@ -24,4 +24,4 @@ Windows Installer flashable zip [without PC] for supported ARM64 devices.
 > Important Notes
 - Ensure there is not more then one esd or wim file should be in Download folder.
 - Ensure all files and folder names match those specified above. All files and letters are case-sensitive.
-- All zip files should be packed without compression.
+- zip files should be packed as normal compression.
