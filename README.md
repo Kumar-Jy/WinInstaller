@@ -1,5 +1,8 @@
 # WinInstaller
 © 2023–2024
+--
+[![Downloads](https://img.shields.io/github/downloads/Kumar-Jy/WinInstaller/total?style=for-the-badge)](https://img.shields.io/github/downloads/Kumar-Jy/WinInstaller/total?style=for-the-badge) [![Latest Release Downloads](https://img.shields.io/github/downloads/Kumar-Jy/WinInstaller/latest/total?style=for-the-badge)](https://img.shields.io/github/downloads/Kumar-Jy/WinInstaller/latest/total?style=for-the-badge) 
+
 
 ## Description
 Windows Installer flashable zip [without PC] for supported ARM64 devices.
