@@ -1,272 +1,317 @@
 #!/sbin/sh
-export UPD_ZIP="$3"
-export UPD_INTERFACE="/proc/$$/fd/$2"
-export RECOVERY_SCRIPT_FD=$2
-export UPD_TEMP_FOLDER=/tmp
-export ZIP_TEMP_FOLDER=/zip_tmp
+#
+# Copyright (C) 2025-26 https://github.com/Kumar-jy, https://github.com/ArKT-7
+#
+# Made for Windows Installation on WOA Devices 
+#
 
+UPD_ZIP="$3"
+UPD_INTERFACE="/proc/self/fd/$2"
+UPD_TEMP_FOLDER="/tmp/wininstaller"
+IMG_BACKUP_FOLDER="/tmp/wininstaller/backup"
+WIN_MOUNT_FOLDER="/tmp/wininstaller/win"
 set -o pipefail
 
-
-# same as progress command in updater-script, for example:
-#
-# progress 0.25 10
-#
-# will update the next 25% of the progress bar over a period of 10 seconds
-
-progress() {
-	if [ $# != 2 ] 
-	then echo "$0 expects 2 args, got $#"; 
-		 echo "usage: $0 <fraction> <duration>";
-	else 
-		if [ $UPD_INTERFACE != "" ]; then
-		echo "progress ${1} ${2} " 1>&$UPD_INTERFACE;
-		fi;
-	fi
-}
-
-show_progress() {
-	progress $@
-}
-
-# same as set_progress command in updater-script, for example:
-#
-# set_progress 0.25
-#
-# sets progress bar to 25%
-
-set_progress() {
-	if [ $# != 1 ] 
-	then echo "$0 expects 1 args, got $#"; 
-		 echo "usage: $0 <fraction>";
-	else 
-		if [ $UPD_INTERFACE != "" ]; then
-		echo "set_progress ${1} " 1>&$UPD_INTERFACE;
-		fi;
-	fi
-}
-
-# same as ui_print command in updater_script, for example:
-#
-# ui_print "hello world!"
-#
-# will output "hello world!" to recovery, while
-#
-# ui_print
-#
-# outputs an empty line
-
 ui_print() {
-  if [ $UPD_INTERFACE != "" ]; then
-    echo "ui_print $* " 1>&$UPD_INTERFACE;
-    echo "ui_print " 1>&$UPD_INTERFACE;
-  else
-    echo "$*";
-  fi;
+  while [ -n "$1" ]; do
+    if [ -n "$UPD_INTERFACE" ] && [ -w "$UPD_INTERFACE" ]; then
+      echo "ui_print $1" >> "$UPD_INTERFACE"
+        echo "ui_print" >> "$UPD_INTERFACE"
+      else
+        echo "Warning: UPD_INTERFACE ($UPD_INTERFACE) is not writable" >&2
+      fi
+    shift
+  done
 }
 
-
-# FIXES AND FEATURES ADDED BY ArKT , telegram - ArKT_7, Github - https://github.com/ArKT-7
-# UI_PRINT FIX, 
-# ADDED - PROGRESS_BAR, PROGRESS_PERCENTANGE WHILE CP, 
-#
-
-OUTFD=/proc/self/fd/$2;
-
-ui_print() {
-  until [ ! "$1" ]; do
-    echo "ui_print $1
-      ui_print" >> $OUTFD;
-    shift;
-  done;
+current_progress=0.0
+aio_progress() {
+  if [ $# -ne 2 ]; then
+    ui_print "Error: aio_progress expects 2 arguments, got $#"
+    ui_print "Usage: aio_progress <target_fraction> <duration_in_seconds>"
+    return 1
+  fi
+  target="$1"
+  duration="$2"
+  if ! echo "$target" | grep -Eq '^[0-9]+([.][0-9]+)?$'; then
+    ui_print "Error: Target value '$target' is not a valid number"
+    return 1
+  fi
+  if ! echo "$duration" | grep -Eq '^[0-9]+([.][0-9]+)?$'; then
+    ui_print "Error: Duration value '$duration' is not a valid number"
+    return 1
+  fi
+  delta=$(awk "BEGIN { print $target - $current_progress }")
+  echo "progress $delta $duration" >> "$UPD_INTERFACE"
+  current_progress=$target
 }
 
-show_progress() { echo "progress $1 $2" >> $OUTFD; }
-
-copy_with_progress() {
-    local src_file=$1
-    local dest_file=$2
-    local total_size=$(stat -c%s "$src_file")
-    local copied_size=0
-    local percentage=0
-    cp "$src_file" "$dest_file" &
-    local cp_pid=$!
-    while kill -0 "$cp_pid" 2>/dev/null; do
-        copied_size=$(stat -c%s "$dest_file" 2>/dev/null || echo 0)
-        percentage=$(echo "scale=2; ($copied_size / $total_size) * 100" | bc)
-        local progress_message="$(basename "$src_file") - $percentage%"
-        ui_print "$progress_message"
-        sleep 1
-    done
-    ui_print "$(basename "$src_file") - 100%."
+package_extract_folder() {
+  if [ $# -ne 2 ]; then
+    ui_print " Error: package_extract_folder expects 2 arguments, got $#"
+    ui_print " Usage: package_extract_folder <src-folder> <dst-folder>"
+    return 1
+  fi
+  local src="$1"
+  local dst="$2"
+  command -v unzip >/dev/null || { ui_print "Error: unzip not found"; return 1; }
+  mkdir -p "$dst"
+  unzip -o "$UPD_ZIP" "$src/*" -d "$dst" >/dev/null 2>&1 || {
+  ui_print " Failed to extract folder: $src"
+  return 1
+  }
 }
 
-abort() {
-  ui_print "$@";
-  ui_print "*                      ***                      *";
-  exit 1;
-}
-#till here its by ArKt
-
-part_win="/dev/block/by-name/win"
-part_esp="/dev/block/by-name/esp"
-part_userdata="/dev/block/by-name/userdata"
-
-# Function to round values
-round() {
-    echo $(awk "BEGIN {print int($1 + 0.5)}")
+package_extract_file() {
+  if [ $# -ne 2 ]; then
+    ui_print " Error: package_extract_file expects 2 arguments, got $#"
+    ui_print " Usage: package_extract_file <src-file> <dst-file>"
+    return 1
+  fi
+  command -v unzip >/dev/null || { ui_print "Error: unzip not found"; return 1; }
+  unzip -p "$UPD_ZIP" "$1" > "$2" || {
+  ui_print " Failed to extract $1"
+  return 1
+  }
 }
 
-# Check if partitions exist
-if [ -e $part_win ] && [ -e $part_esp ]; then
-    # Get partition sizes in bytes
-    WIN_SIZE_BYTES=$(blockdev --getsize64 $part_win)
-    ESP_SIZE_BYTES=$(blockdev --getsize64 $part_esp)
-    USERDATA_SIZE_BYTES=$(blockdev --getsize64 $part_userdata)
-	
-    # Convert bytes to GB and MB using integer division and rounding
-    WIN_SIZE=$(awk "BEGIN {print $WIN_SIZE_BYTES / (1000 * 1000 * 1000)}")
-    ESP_SIZE=$(awk "BEGIN {print $ESP_SIZE_BYTES / (1000 * 1000)}")
-    USERDATA_SIZE=$(awk "BEGIN {print $USERDATA_SIZE_BYTES / (1000 * 1000 * 1000)}")
+ui_print_wrapped() {
+  local text="$1"
+  local width="${2:-43}"
+  local prefix
+  prefix=$(echo "$text" | sed -E 's/^([[:space:]]*).*/\1/')
+  text="${text#"${prefix}"}"
+  if [ "${#text}" -le "$width" ]; then
+    ui_print "$prefix$text"
+    return
+  fi
+  ui_print "$prefix${text:0:$width}"
+  text="${text:$width}"
+  while [ "${#text}" -gt "$width" ]; do
+    ui_print "$prefix${text:0:$width}"
+    text="${text:$width}"
+  done
 
-    # Round the values
-    WIN_SIZE_ROUNDED=$(round $WIN_SIZE)
-    ESP_SIZE_ROUNDED=$(round $ESP_SIZE)
-    USERDATA_SIZE_ROUNDED=$(round $USERDATA_SIZE)
+  [ -n "$text" ] && ui_print "$prefix$text"
+}
 
-    # Check partition size requirements
-    if (( WIN_SIZE_ROUNDED >= 30 && ESP_SIZE_ROUNDED >= 349 )); then
-        ui_print "USERDATA_SIZE: ${USERDATA_SIZE_ROUNDED}GB"
-        ui_print "WIN_SIZE: ${WIN_SIZE_ROUNDED}GB"
-        ui_print "ESP_SIZE: ${ESP_SIZE_ROUNDED}MB"
-    else
-		ui_print "USERDATA_SIZE: ${USERDATA_SIZE_ROUNDED}GB"
-        ui_print "WIN_SIZE: ${WIN_SIZE_ROUNDED}GB"
-        ui_print "ESP_SIZE: ${ESP_SIZE_ROUNDED}MB"
-        ui_print "At least 30GB for win and 350MB for esp partition required."
-        exit 1
+volumekey() {
+  while true; do
+    getevent -lc 1 2>&1 | grep VOLUME | grep " DOWN" > "$UPD_TEMP_FOLDER/events"
+    if grep -q "VOLUMEUP" "$UPD_TEMP_FOLDER/events"; then
+      return 0
+    elif grep -q "VOLUMEDOWN" "$UPD_TEMP_FOLDER/events"; then
+      return 1
     fi
+  done
+}
+
+navigate_menu() {
+  options=("$@")
+  count=${#options[@]}
+  selection=0
+  ui_print "----------------------------------------------------"
+  ui_print "  Use Volume up to navigate, Volume down to select. "
+  ui_print "----------------------------------------------------"
+  while true; do
+    ui_print " "
+    for i in $(seq 0 $((count - 1))); do
+      if [ "$i" -eq "$selection" ]; then
+        ui_print "> ${options[i]}"
+      else
+        ui_print "  ${options[i]}"
+      fi
+    done
+    if volumekey; then
+      selection=$(( (selection + 1) % count ))
+    else
+      ui_print " "
+	  ui_print "----------------------------------------------------"
+      ui_print " You selected: ${options[selection]}"
+      ui_print "----------------------------------------------------"
+      break
+    fi
+  done
+}
+
+verify_device() {
+  required="$1"
+  current="$(getprop ro.product.device)"
+
+  if [ "$current" != "$required" ]; then
+    ui_print " "
+    ui_print "*---------------------Error!--------------------*"
+    ui_print " This script is only for $required devices."
+    ui_print " Your device is: $current"
+    ui_print " "
+    exit 1
+  fi
+}
+
+round() { awk "BEGIN {print int($1 + 0.5)}"; }
+
+verify_part() {
+  ud_path="$path/userdata"
+
+  if [ ! -e "$win_path" ] || [ ! -e "$esp_path" ]; then
+    ui_print " "
+    ui_print "*---------------------Error!--------------------*"
+    ui_print "Required partitions ($win_path and/or $esp_path) do not exist."
+    ui_print " "
+    exit 1
+  fi
+
+  local win_gb=$(awk "BEGIN {print $(blockdev --getsize64 "$win_path") / 1e9}")
+  local esp_mb=$(awk "BEGIN {print $(blockdev --getsize64 "$esp_path") / 1e6}")
+  local ud_gb=$(awk "BEGIN {print $(blockdev --getsize64 "$ud_path") / 1e9}")
+
+  local win_r=$(round "$win_gb")
+  local esp_r=$(round "$esp_mb")
+  local ud_r=$(round "$ud_gb")
+
+  ui_print "              Userdata Size: ${ud_r}GB"
+  ui_print "                ESP Size: ${esp_r}MB"
+  ui_print "               Windows Size: ${win_r}GB"
+
+  if [ "$win_r" -ge "$win_min_size" ] && [ "$esp_r" -ge "$esp_min_size" ]; then
+    ui_print "*      Partition size meets requirements.       *"
+  else
+    ui_print " "
+    #ui_print "*----------------------Note!---------------------*"
+    ui_print "*---------------------Error!--------------------*"
+    ui_print "*   Partition size doesn't meet requirements.   *"
+    ui_print "At least ${win_min_size}GB for $win and ${esp_min_size}MB for $esp are required."
+    ui_print " "
+    exit 1
+  fi
+}
+
+run_gdisk() {
+  local DEVICE=$1
+  "$UPD_TEMP_FOLDER/gdisk" "$DEVICE" <<EOF
+x
+j
+
+k
+
+w
+Y
+EOF
+}
+
+verify_battery() {
+  if [ "$current_battery_level" -le "$min_required_battery" ]; then
+    #ui_print "*----------------------Note!---------------------*"
+    ui_print "*---------------------Error!--------------------*"
+    ui_print "Battery is below $min_required_battery%, exiting..."
+    ui_print " "
+    exit 1
+  else
+    ui_print "      Battery percentage is sufficient: $current_battery_level%"
+  fi
+}
+
+is_windows_installed() {
+  umount "$win_path"
+  mount.ntfs "$win_path" "$WIN_MOUNT_FOLDER" || { ui_print "Failed to mount $win_path"; return 1; }
+  if [ -f "$WIN_MOUNT_FOLDER/Windows/explorer.exe" ]; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+is_partition_rw() { touch "$WIN_MOUNT_FOLDER/rw_test" 2>/dev/null && rm "$WIN_MOUNT_FOLDER/rw_test"; }
+
+backup_partitions() {
+  slot=$(getprop ro.boot.slot_suffix)
+  for part in "$@"; do
+    if [[ "$part" == "boot" || "$part" == "dtbo" || "$part" == "vendor_boot" ]]; then
+      if [ -n "$slot" ] && [ -e "$path/${part}${slot}" ]; then
+        part="${part}${slot}"
+      fi
+    fi
+
+    if [ -e "$path/$part" ]; then
+      dd if="$path/$part" of="$IMG_BACKUP_FOLDER/$part.img" bs=8M
+    fi
+  done
+  for j in /sdcard /external_sd/WOA /usbstorage/WOA /usb_otg/WOA; do
+    mkdir -p "$j/backup"
+    cp -r -n "$IMG_BACKUP_FOLDER" "$j"
+  done
+}
+
+win_esd_search() {
+  for depth in "-maxdepth 1" ""; do
+    for dir in /sdcard/Download /external_sd/WOA /usbstorage/WOA /usb_otg/WOA \
+               /sdcard /external_sd /usbstorage /usb_otg; do
+      WIN_IMAGE=$(find "$dir" $depth -type f \( -iname "*.esd" -o -iname "*.wim" \) \
+                  ! -path "*/Android/*" 2>/dev/null | head -n 1)
+      [ -n "$WIN_IMAGE" ] && { ui_print_wrapped "   Found: $WIN_IMAGE"; return 0; }
+    done
+  done
+  ui_print " "
+  #ui_print "*----------------------Note!---------------------*"
+  ui_print "*---------------------Error!--------------------*"
+  ui_print "    Windows image file (ESD or WIM) not found     "
+  ui_print " "
+  umount "$win_path"
+  exit 1
+}
+
+find_index() {
+  local wim_info_path="$UPD_TEMP_FOLDER/wim_info.txt"
+  "$UPD_TEMP_FOLDER/wimlib-imagex" info "$WIN_IMAGE" > "$wim_info_path" 2>/dev/null
+  for EDITION in "${WINDOWS_EDITIONS[@]}"; do 
+  INDEX=$(grep -B 1 "$EDITION" "$wim_info_path" | awk '/Index/ {print $2; exit}')
+    if [[ -n "$INDEX" ]]; then
+      SELECTED_INDEX="$INDEX"
+      SELECTED_EDITION="$EDITION"
+      ui_print_wrapped "   $SELECTED_EDITION found at Index No $SELECTED_INDEX "
+      return 0
+    fi
+  done
+  ui_print " "
+  #i_print "*----------------------Note!---------------------*"
+  ui_print "*---------------------Error!--------------------*"
+  ui_print " No matching Windows edition found in $WIN_IMAGE"
+  ui_print " "
+  umount "$win_path"
+  exit 1
+}
+
+format_win() {
+  umount "$win_path"
+  mkfs.ntfs -f "$win_path" -L "$win_part_name"
+}
+# might be better to combile both funtion to smth like setup_bin
+setup_gdisk() {
+  package_extract_file "META-INF/com/bin/gdisk" "$UPD_TEMP_FOLDER/gdisk"
+  chmod 0777 "$UPD_TEMP_FOLDER/gdisk"
+}
+
+setup_wimlib() {
+  package_extract_file "META-INF/com/bin/wimlib-imagex" "$UPD_TEMP_FOLDER/wimlib-imagex"
+  chmod 0777 "$UPD_TEMP_FOLDER/wimlib-imagex"
+}
+# may be good but take some seconds more to extract
+rm -rf "$UPD_TEMP_FOLDER"
+mkdir -p "$UPD_TEMP_FOLDER"
+mkdir -p "$IMG_BACKUP_FOLDER"
+mkdir -p "$WIN_MOUNT_FOLDER"
+
+package_extract_file "META-INF/com/google/android/updater-script" "$UPD_TEMP_FOLDER/updater-script" || {
+    ui_print "Cannot extract updater-script. Do you have it in package?"
+    exit 1
+}
+chmod 777 "$UPD_TEMP_FOLDER/updater-script"
+
+# Source the updater-script (Only if it's a valid shell script)
+if grep -q "^#!/" "$UPD_TEMP_FOLDER/updater-script"; then
+    . "$UPD_TEMP_FOLDER/updater-script" "$@"
 else
-    ui_print "Required partitions do not exist."
+    ui_print "Error: updater-script is not a shell script"
     exit 1
 fi
-
-WIN_IMAGE=""
-
-# Function to search for image recursively
-search_image() {
-    local search_dir="$1"
-    [ -n "$WIN_IMAGE" ] && return # Skip if image already found
-    WIN_IMAGE=$(find "$search_dir" -type f \( -name "*.esd" -o -name "*.wim" \) ! -path "*/Android/*" | head -n 1)
-    if [ -n "$WIN_IMAGE" ]; then
-        ui_print "Windows Image found at $WIN_IMAGE"
-    fi
-}
-
-# Search in default directories first
-search_image "/sdcard/Download"
-search_image "/external_sd/WOA"
-search_image "/usbstorage/WOA"
-search_image "/usb_otg/WOA"
-
-# If no image found, search recursively in all directories, skipping "Android" ofc 
-if [ -z "$WIN_IMAGE" ]; then
-    for dir in /sdcard /external_sd /usbstorage /usb_otg; do
-        if [ -d "$dir" ]; then
-            search_image "$dir"
-            [ -n "$WIN_IMAGE" ] && break
-        fi
-    done
-fi
-
-
-# If still no image found, check mounted Windows partition
-if [ -z "$WIN_IMAGE" ]; then
-    mkdir -p /tmp/win
-    ui_print "Mounting Windows partition..."
-    umount "$part_win" 2>/dev/null
-    mount.ntfs "$part_win" /tmp/win || { ui_print "Failed to mount $part_win"; exit 1; }
-    
-    if [ -f /tmp/win/Windows/explorer.exe ]; then
-        ui_print "Windows is already installed. Processing for drivers update."
-        umount $part_win
-    else
-        ui_print "No ESD or WIM files found anywhere. Ensure the file exists on your device."
-        umount $part_win
-        exit 1
-    fi
-fi
-
-
-# Editions to search and set windows edition for in priority order
-WINDOWS_EDITIONS=(
-    "Windows 11 Pro"
-    "Windows 11 IoT Enterprise LTSC"
-    "Windows 10 Pro"
-    "Windows 11 Home"
-)
-
-
-package_extract_file(){
-	if [ $# != 2 ] 
-	then echo "$0 expects 2 args, got $#"; 
-		 echo "usage: $0 <src-file> <dst-file>";
-	else unzip -p $UPD_ZIP $1 > $2;
-	fi
-}
-
-package_extract_folder(){
-	if [ -d $ZIP_TEMP_FOLDER ] 
-	then rm -rf $ZIP_TEMP_FOLDER
-	fi
-	
-	if [ $# != 2 ] 
-	then echo "$0 expects 2 args, got $#"; echo "usage: $0 <src-dir> <dst-dir>";
-	else mkdir -p ZIP_TEMP_FOLDER
-		 unzip $UPD_ZIP $1/* -d $ZIP_TEMP_FOLDER;
-		 mv $ZIP_TEMP_FOLDER/$1 $2
-	fi	
-}
-
-set_perm() {
-	if [ $# != 2 ] 
-	then echo "$0 expects 4 args, got $#"; 
-		 echo "usage: $0 <uid> <gid> <mode> <pathtofile>[, ... pathtofileN]";
-	else
-		us=$(id -u $1)
-		gr=$(id -g $2)
-		mode=$3
-		shift 3
-		for item in "$*"; do
-			chown ${us}.${gr} $item
-			chown ${us}:${gr} $item
-			chmod $mode $item
-		done
-	fi
-}
-
-stdout_to_ui_print() {
-	while read -r line; do
-	ui_print "$line"
-	done
-}
-
-to_ui_print() {
-	eval "$*" | stdout_to_ui_print
-}
-
-# empty line after "Extracting ..." from updater-script
-ui_print;
-if [ "$UPD_ZIP" == "/tmp/update.zip" ]; then
-	ui_print "Can not run in sideload mode"
-	abort;
-fi
-
-if [ -d $UPD_TEMP_FOLDER ]
-then rm -rf $UPD_TEMP_FOLDER
-fi
-mkdir -p $UPD_TEMP_FOLDER
-package_extract_file META-INF/com/google/android/updater-script $UPD_TEMP_FOLDER/updater-script || ui_print "Can not extract updater-script. Do you have it in package?"
-chmod 777 $UPD_TEMP_FOLDER/updater-script
-. $UPD_TEMP_FOLDER/updater-script $@
 exit $?

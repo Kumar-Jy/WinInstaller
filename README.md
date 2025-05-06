@@ -1,30 +1,73 @@
 # WinInstaller
-© 2023–2024
+© 2025–2026
 --
-[![Downloads](https://img.shields.io/github/downloads/Kumar-Jy/WinInstaller/total?style=for-the-badge)](https://img.shields.io/github/downloads/Kumar-Jy/WinInstaller/total?style=for-the-badge) [![Latest Release Downloads](https://img.shields.io/github/downloads/Kumar-Jy/WinInstaller/latest/total?style=for-the-badge)](https://img.shields.io/github/downloads/Kumar-Jy/WinInstaller/latest/total?style=for-the-badge) 
+## --WILL UPADTE THIS PAGE LATER-- 
 
+### 📄 Description
 
-## Description
-Windows Installer flashable zip [without PC] for supported ARM64 devices.
+**WinInstaller** provides a flashable zip (no PC required) for installing Windows on supported ARM64 devices.
 
-### Prerequisites
-- All necessary partition for Windows ( such as win and esp) should already be created
--	Ensure the ESP partition size is not smaller then 350MB
+---
 
-### Preparation
-- Download this repository as a zip and unpack it.
--	Download the pe.img from [here](https://github.com/Kumar-Jy/WinInstaller/releases/download/WinPE/pe.img) and add it to the /installer folder.
--	Place the uefi.img of your device in the unpacked folder.
--	Download the Drivers pack for your device, unpack it. and copy all files/folders in /installer/Driver.
-- Place the modified Driver.zip into the unpacked WinInstaller folder. It should contains Driver.zip, pe.img, uefi.img, and META-INF (all file and folder names are case-sensitive).
-- Select all files/folders and repack them as a zip file. Your WinInstaller.zip is now ready.
+### 📋 Prerequisites
 
-### Flashing Instructions
-- Download the Windows ESD image (it should be in the default download folder in your device memory).
-- Boot to TWRP/OrangeFox recovery and flash/sideload WinInstaller.zip.
-- The device will automatically reboot to WinPE and begin the Windows installation.
-  
-> Important Notes
-- Ensure there is not more then one esd or wim file should be in Download folder.
-- Ensure all files and folder names match those specified above. All files and letters are case-sensitive.
-- zip files should be packed as normal compression.
+- Ensure all necessary partitions for Windows installation (e.g., `win` and `esp`) are already created.
+- ⚠️ **Important**: The ESP partition size must be at least **350MB**.
+
+---
+
+### 🔧 Preparation
+
+1. **Download and unpack** this repository as a zip.
+2. **Download the PE image** from [here](https://github.com/Kumar-Jy/WinInstaller/releases/download/WinPE/pe.img) and place it in the unpacked folder.
+3. **Add your device's UEFI image** (`uefi.img`) to the unpacked folder.
+4. **Download the Drivers Pack** for your device and unpack it. Then:
+   - Select all files and repack them as `Driver.zip`.
+   - Place the modified `Driver.zip` into the unpacked WinInstaller folder.
+
+---
+
+### 📂 Folder Structure
+
+Organize the folder structure as follows:
+
+```plaintext
+WinInstaller.zip
+
+-pe.img (WinPE image)
+-uefi.img (UEFI image)
+-install.bat (Batch script)
+-Driver.zip (Driver pack)
+-wimlib-imagex (Binary file)
+-gdisk (Binary file)
+-sta.exe (Executable file)
+
+-META-INF (Folder)
+       └── com (Folder)
+           └── google (Folder)
+               └── update-binary (Binary script)
+               └── updater-script (Binary script)
+```
+
+*(All file and folder names are case-sensitive.)*
+
+5. **Repack all files/folders** into a zip file. This will create your `WinInstaller.zip`.
+
+---
+
+### 💻 Flashing Instructions
+
+1. **Download the Windows ESD image**:
+   - Ensure it is located in the default download folder on your device.
+2. **Boot to TWRP/OrangeFox Recovery**:
+   - Flash or sideload the `WinInstaller.zip` file.
+3. Your device will **automatically reboot** into WinPE and start the Windows installation process.
+
+---
+
+### ⚠️ Important Notes
+
+- Ensure there is **only one** `.esd` or `.wim` file in the `Download` folder.
+- Confirm that all file and folder names match the specifications above. **Names are case-sensitive**.
+- All zip files must be packed **without compression**.
+
