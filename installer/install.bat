@@ -1,4 +1,16 @@
 @echo off
+:: Check if font has already been set because if not then it will loop
+if "%1" neq "nofont" (
+    :: CMD font size set to approx. 55 in hex 0x00320000
+    reg add "HKCU\Console" /v FontSize /t REG_DWORD /d 0x00320000 /f >nul 2>&1
+	:: maximize CMD window
+    reg add "HKCU\Console" /v WindowSize /t REG_DWORD /d 0x00190050 /f >nul 2>&1
+    reg add "HKCU\Console" /v WindowPosition /t REG_DWORD /d 0x00000000 /f >nul 2>&1
+    :: re-run the batch file with a flag so it doesnt loop
+    start "" /wait cmd /c "%~f0" nofont
+    exit /b
+)
+
 setlocal enabledelayedexpansion
 echo Copyright (C) 2023-24-25 https://github.com/Kumar-Jy
 :: Set console mode
@@ -6,10 +18,10 @@ mode 800
 echo.
 echo ============================================================
 echo        Welcome to Windows Installation in Xiaomi Pad 5    
-echo            Version: WinInstaller_Nabu_R8.2.2              
-echo            Date   : 17-Apr-2025                           
-echo            Made by: Kumar_Jy                              
-echo      Help and suggestions: ArKT, Sog, Andre_grams.        
+echo              Version: WinInstaller_Nabu_R8.2.5              
+echo              Date   : 05-May-2025                           
+echo              Made by: Kumar_Jy, ArKT                             
+echo          Help and suggestions: Sog, Andre_grams.        
 echo    Drivers And UEFI: Project-Aloha,map220v,remtrik And idk
 echo ============================================================
 echo.
