@@ -6,16 +6,16 @@
 #
 
 #=======================Configrations=======================
-device_code="nabu" # Check and verify device with its codename
-path="/dev/block/by-name"  # Base path to named partition symlinks
-win_path="$path/win"  # Windows partition block name
-win_min_size=30  # in GB
-esp_path="$path/esp"  # ESP partition block name
-esp_min_size=349  # in MB
-current_battery_level=$(cat /sys/class/power_supply/battery/capacity)
-min_required_battery=40  # Minimum required battery percentage to proceed
-partition_backup="boot dtbo vendor_boot fsc fsg modemst1 modemst2 persist" # set partiiton to backup auto handgle A/B non A/B device
-win_part_name="WINNABU"  # Partiton name for format
+DEVICE_CODE="nabu" # Check and verify device with its codename
+BASE_PATH="/dev/block/by-name"  # Base path to named partition symlinks
+WIN_PATH="$BASE_PATH/win"  # Windows partition block name
+WIN_MIN_SIZE=30  # in GB
+ESP_PATH="$BASE_PATH/esp"  # ESP partition block name
+ESP_MIN_SIZE=349  # in MB
+CURRENT_BATTERY=$(cat /sys/class/power_supply/battery/capacity)
+REQUIRED_BATTERY=50  # Minimum required battery percentage to proceed
+PARTITION_BACKUP="boot dtbo vendor_boot fsc fsg modemst1 modemst2 persist" # set partiiton to backup auto handgle A/B non A/B device
+WIN_PART_NAME="WINNABU"  # Partiton name for format
 WINDOWS_EDITIONS=(
     "Windows 11 Pro"
     "Windows 11 IoT Enterprise LTSC"
@@ -24,23 +24,29 @@ WINDOWS_EDITIONS=(
     "Windows 10 Pro"
     "Windows 10 Home"
 )
+BANNER_EXIT="*---------------------Error!--------------------*"
+BANNER_LINE="*-----------------------------------------------*"
 #===========================================================
 
 ui_print "*===============================================*"
 ui_print "*Welcome to Windows Installation on Xiaomi Pad 5*"
 ui_print "*        Version: WinInstaller_Nabu_R8.2.5      *"
-ui_print "*        Date   : 05-May-2025                   *"
+ui_print "*        Date   : 07-May-2025                   *"
 ui_print "*        Made by: Kumar_Jy & ArKT               *"
 ui_print "*   Help and suggestions by: Sog, Andre_grams   *"
 ui_print "*Drivers & UEFI: Project-Aloha,map220v,remtrik..*"
 ui_print "*===============================================*"
-verify_device "$device_code"
+verify_device "$DEVICE_CODE"
 ui_print "*           Verifying Partition Size            *"
 verify_part
-ui_print "*-----------------------------------------------*"
+ui_print "$BANNER_LINE"
 ui_print "*            Checking Battery Status            *"
-verify_battery
-ui_print "*-----------------------------------------------*"
+if verify_battery; then
+    ui_print "      Battery percentage is sufficient: $CURRENT_BATTERY%"
+else
+    abort "        Battery is below $REQUIRED_BATTERY%, exiting..."
+fi
+ui_print "$BANNER_LINE"
 ui_print "*                   Fixing GPT                  *"
 aio_progress 0.5 10
 setup_gdisk
@@ -49,12 +55,12 @@ for i in a b c d e f; do
     DEVICE="/dev/block/sd$i"
     run_gdisk "$DEVICE"
 done
-ui_print "*-----------------------------------------------*"
+ui_print "$BANNER_LINE"
 ui_print "*  Extracting boot and modem to /sdcard/backup  *"
-backup_partitions $partition_backup
-ui_print "*-----------------------------------------------*"
+backup_partitions $PARTITION_BACKUP
+ui_print "$BANNER_LINE"
 ui_print "*   Checking if Windows is already installed    *"
-ui_print "*-----------------------------------------------*"
+ui_print "$BANNER_LINE"
 aio_progress 0.1 0
 aio_progress 0.9 80
 setup_wimlib
@@ -66,7 +72,7 @@ if is_windows_installed; then
         ui_print "*    and processing for Drivers Installation    *"
     else
         ui_print " "
-        ui_print "*---------------------Error!--------------------*"
+        ui_print "$BANNER_EXIT"
         ui_print "          Error: Partition is Read-Only         "
         ui_print "Goto Windows then reboot to Android and try again"
         ui_print " "
@@ -75,22 +81,22 @@ if is_windows_installed; then
     fi
 else
     ui_print "*        Windows is not already installed       *"
-    ui_print "*       Proceeding with Windows Installation    *"
-    ui_print "*-----------------------------------------------*"
+    ui_print "*      Proceeding with Windows Installation     *"
+    ui_print "$BANNER_LINE"
     ui_print "*           Searching for Windows Image         *"
     win_esd_search
-    ui_print "*-----------------------------------------------*"
+    ui_print "$BANNER_LINE"
     ui_print "*           Verifying Windows Edition           *"
     find_index
-    ui_print "*-----------------------------------------------*"
+    ui_print "$BANNER_LINE"
     ui_print "   Installing $SELECTED_EDITION ...."
     format_win
-    "$UPD_TEMP_FOLDER/wimlib-imagex" apply "$WIN_IMAGE" "$SELECTED_INDEX" "$win_path"
+    "$UPD_TEMP_FOLDER/wimlib-imagex" apply "$WIN_IMAGE" "$SELECTED_INDEX" "$WIN_PATH"
 fi
 
 if ! is_windows_installed; then
     ui_print " "
-    ui_print "*---------------------Error!--------------------*"
+    ui_print "$BANNER_EXIT"
     ui_print "Failed to install $SELECTED_EDITION, ESD/WIM file may be corrupted..."
     ui_print "Reboot to Android and check the ESD/WIM image."
     ui_print " "
@@ -100,20 +106,20 @@ fi
 aio_progress 0.5 0
 #After this idk if i'll do modular, but not need ig, idk also already added handle non A/B device in oneliner like before
 aio_progress 0.95 50
-ui_print "*-----------------------------------------------*"
+ui_print "$BANNER_LINE"
 ui_print "*         Extracting Installation File          *";
 package_extract_folder "installer" "$WIN_MOUNT_FOLDER"
 package_extract_folder "ToolBox" "$WIN_MOUNT_FOLDER"
 package_extract_file "woahelper.apk" "/sdcard/woahelper.apk"
-ui_print "*-----------------------------------------------*"
+ui_print "$BANNER_LINE"
 ui_print "*               Flashing UEFI image             *"
 rm /sdcard/UEFI/*.img
 mkdir -p /sdcard/UEFI
-dd if="$WIN_MOUNT_FOLDER/installer/uefi.img" of="/sdcard/UEFI/uefi.img" bs=1M || { umount "$win_path" "$esp_path"; ui_print "Error copying uefi.img"; exit 1; }
-dd if="/sdcard/backup/boot$(getprop ro.boot.slot_suffix).img" of="$WIN_MOUNT_FOLDER/boot.img" bs=1M 2>/dev/null || dd if="/sdcard/backup/boot.img" of="$WIN_MOUNT_FOLDER/boot.img" bs=1M || { umount "$win_path" "$esp_path"; ui_print "Error copying boot.img in Windows"; exit 1; }
-dd if="$WIN_MOUNT_FOLDER/installer/pe.img" of="$path/esp" bs=1M || { umount "$win_path" "$esp_path"; ui_print "Error flashingh WinPE.img"; exit 1; }
-dd if="$WIN_MOUNT_FOLDER/installer/uefi.img" of="$path/boot$(getprop ro.boot.slot_suffix)" bs=1M 2>/dev/null || dd if="$WIN_MOUNT_FOLDER/installer/uefi.img" of="$path/boot" bs=1M || { umount "$win_path" "$esp_path"; ui_print "Error flashing uefi on boot partition"; exit 1; }
-umount "$win_path" "$esp_path"
+dd if="$WIN_MOUNT_FOLDER/installer/uefi.img" of="/sdcard/UEFI/uefi.img" bs=1M || { abort "Error copying uefi.img"; }
+dd if="/sdcard/backup/boot$(getprop ro.boot.slot_suffix).img" of="$WIN_MOUNT_FOLDER/boot.img" bs=1M 2>/dev/null || dd if="/sdcard/backup/boot.img" of="$WIN_MOUNT_FOLDER/boot.img" bs=1M || { abort "Error copying boot.img in Windows"; }
+dd if="$WIN_MOUNT_FOLDER/installer/pe.img" of="$BASE_PATH/esp" bs=1M || { abort "Error flashingh WinPE.img"; }
+dd if="$WIN_MOUNT_FOLDER/installer/uefi.img" of="$BASE_PATH/boot$(getprop ro.boot.slot_suffix)" bs=1M 2>/dev/null || dd if="$WIN_MOUNT_FOLDER/installer/uefi.img" of="$BASE_PATH/boot" bs=1M || { abort "Error flashing uefi on boot partition"; }
+umount "$WIN_PATH" "$ESP_PATH"
 sleep 1
 ui_print "*===============================================*"
 ui_print "*   Flashing Completed, Now reboot to system    *"
@@ -126,4 +132,5 @@ ui_print "*    ask for help on Telegram: @wininstaller    *"
 ui_print "*                                               *"
 ui_print "*   Thanks to all WOA Developers & Maintainers  *"
 ui_print "*===============================================*"
+#to-do add volume button selection to choose to restart or exit
 exit

@@ -24,6 +24,15 @@ ui_print() {
   done
 }
 
+abort() {
+  ui_print " "
+  ui_print "$BANNER_EXIT"
+  ui_print "$1"
+  ui_print " "
+  umount "$WIN_PATH" "$ESP_PATH"
+  exit 1
+}
+
 current_progress=0.0
 aio_progress() {
   if [ $# -ne 2 ]; then
@@ -135,15 +144,13 @@ navigate_menu() {
 }
 
 verify_device() {
-  required="$1"
   current="$(getprop ro.product.device)"
-
-  if [ "$current" != "$required" ]; then
-    ui_print " "
-    ui_print "*---------------------Error!--------------------*"
-    ui_print " This script is only for $required devices."
+  if [ "$current" != "$1" ]; then
+    ui_print ""
+    ui_print "$BANNER_EXIT"
+    ui_print " This script is only for $1 devices."
     ui_print " Your device is: $current"
-    ui_print " "
+    ui_print ""
     exit 1
   fi
 }
@@ -151,44 +158,43 @@ verify_device() {
 round() { awk "BEGIN {print int($1 + 0.5)}"; }
 
 verify_part() {
-  ud_path="$path/userdata"
+  UD_PATH="$BASE_PATH/userdata"
 
-  if [ ! -e "$win_path" ] || [ ! -e "$esp_path" ]; then
+  if [ ! -e "$WIN_PATH" ] || [ ! -e "$ESP_PATH" ]; then
     ui_print " "
     ui_print "*---------------------Error!--------------------*"
-    ui_print "Required partitions ($win_path and/or $esp_path) do not exist."
+    ui_print "Required partitions ($WIN_PATH and/or $ESP_PATH) do not exist."
     ui_print " "
     exit 1
   fi
 
-  local win_gb=$(awk "BEGIN {print $(blockdev --getsize64 "$win_path") / 1e9}")
-  local esp_mb=$(awk "BEGIN {print $(blockdev --getsize64 "$esp_path") / 1e6}")
-  local ud_gb=$(awk "BEGIN {print $(blockdev --getsize64 "$ud_path") / 1e9}")
+  local UD_GB=$(awk "BEGIN {print $(blockdev --getsize64 "$UD_PATH") / 1e9}")
+  local WIN_GB=$(awk "BEGIN {print $(blockdev --getsize64 "$WIN_PATH") / 1e9}")
+  local ESP_GB=$(awk "BEGIN {print $(blockdev --getsize64 "$ESP_PATH") / 1e6}")
 
-  local win_r=$(round "$win_gb")
-  local esp_r=$(round "$esp_mb")
-  local ud_r=$(round "$ud_gb")
+  local UD_R=$(round "$UD_GB")
+  local WIN_R=$(round "$WIN_GB")
+  local ESP_R=$(round "$ESP_GB")
 
-  ui_print "              Userdata Size: ${ud_r}GB"
-  ui_print "                ESP Size: ${esp_r}MB"
-  ui_print "               Windows Size: ${win_r}GB"
+  ui_print "              Userdata Size: ${UD_R}GB"
+  ui_print "                ESP Size: ${ESP_R}MB"
+  ui_print "               Windows Size: ${WIN_R}GB"
 
-  if [ "$win_r" -ge "$win_min_size" ] && [ "$esp_r" -ge "$esp_min_size" ]; then
+  if [ "$WIN_R" -ge "$WIN_MIN_SIZE" ] && [ "$ESP_R" -ge "$ESP_MIN_SIZE" ]; then
     ui_print "*      Partition size meets requirements.       *"
   else
     ui_print " "
     #ui_print "*----------------------Note!---------------------*"
-    ui_print "*---------------------Error!--------------------*"
+    ui_print "$BANNER_EXIT"
     ui_print "*   Partition size doesn't meet requirements.   *"
-    ui_print "At least ${win_min_size}GB for $win and ${esp_min_size}MB for $esp are required."
+    ui_print "At least ${WIN_MIN_SIZE}GB for Windows and ${ESP_MIN_SIZE}MB for ESP size are required."
     ui_print " "
     exit 1
   fi
 }
 
 run_gdisk() {
-  local DEVICE=$1
-  "$UPD_TEMP_FOLDER/gdisk" "$DEVICE" <<EOF
+  "$UPD_TEMP_FOLDER/gdisk" "$1" <<EOF
 x
 j
 
@@ -200,20 +206,12 @@ EOF
 }
 
 verify_battery() {
-  if [ "$current_battery_level" -le "$min_required_battery" ]; then
-    #ui_print "*----------------------Note!---------------------*"
-    ui_print "*---------------------Error!--------------------*"
-    ui_print "        Battery is below $min_required_battery%, exiting..."
-    ui_print " "
-    exit 1
-  else
-    ui_print "      Battery percentage is sufficient: $current_battery_level%"
-  fi
+  [ "$CURRENT_BATTERY" -ge "$REQUIRED_BATTERY" ]
 }
 
 is_windows_installed() {
-  umount "$win_path"
-  mount.ntfs "$win_path" "$WIN_MOUNT_FOLDER" || { ui_print "Failed to mount $win_path"; return 1; }
+  umount "$WIN_PATH"
+  mount.ntfs "$WIN_PATH" "$WIN_MOUNT_FOLDER" || { abort "Failed to mount $WIN_PATH"; }
   if [ -f "$WIN_MOUNT_FOLDER/Windows/explorer.exe" ]; then
     return 0
   else
@@ -227,13 +225,13 @@ backup_partitions() {
   slot=$(getprop ro.boot.slot_suffix)
   for part in "$@"; do
     if [[ "$part" == "boot" || "$part" == "dtbo" || "$part" == "vendor_boot" ]]; then
-      if [ -n "$slot" ] && [ -e "$path/${part}${slot}" ]; then
+      if [ -n "$slot" ] && [ -e "$BASE_PATH/${part}${slot}" ]; then
         part="${part}${slot}"
       fi
     fi
 
-    if [ -e "$path/$part" ]; then
-      dd if="$path/$part" of="$IMG_BACKUP_FOLDER/$part.img" bs=8M
+    if [ -e "$BASE_PATH/$part" ]; then
+      dd if="$BASE_PATH/$part" of="$IMG_BACKUP_FOLDER/$part.img" bs=8M
     fi
   done
   for j in /sdcard /external_sd/WOA /usbstorage/WOA /usb_otg/WOA; do
@@ -251,13 +249,7 @@ win_esd_search() {
       [ -n "$WIN_IMAGE" ] && { ui_print_wrapped "   Found: $WIN_IMAGE"; return 0; }
     done
   done
-  ui_print " "
-  #ui_print "*----------------------Note!---------------------*"
-  ui_print "*---------------------Error!--------------------*"
-  ui_print "    Windows image file (ESD or WIM) not found     "
-  ui_print " "
-  umount "$win_path"
-  exit 1
+  abort "    Windows image file (ESD or WIM) not found     "
 }
 
 find_index() {
@@ -272,18 +264,12 @@ find_index() {
       return 0
     fi
   done
-  ui_print " "
-  #i_print "*----------------------Note!---------------------*"
-  ui_print "*---------------------Error!--------------------*"
-  ui_print " No matching Windows edition found in $WIN_IMAGE"
-  ui_print " "
-  umount "$win_path"
-  exit 1
+  abort " No matching Windows edition found in $WIN_IMAGE"
 }
 
 format_win() {
-  umount "$win_path"
-  mkfs.ntfs -f "$win_path" -L "$win_part_name"
+  umount "$WIN_PATH"
+  mkfs.ntfs -f "$WIN_PATH" -L "$WIN_PART_NAME"
 }
 # might be better to combile both funtion to smth like setup_bin
 setup_gdisk() {
