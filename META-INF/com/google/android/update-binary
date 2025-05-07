@@ -203,7 +203,7 @@ verify_battery() {
   if [ "$current_battery_level" -le "$min_required_battery" ]; then
     #ui_print "*----------------------Note!---------------------*"
     ui_print "*---------------------Error!--------------------*"
-    ui_print "Battery is below $min_required_battery%, exiting..."
+    ui_print "        Battery is below $min_required_battery%, exiting..."
     ui_print " "
     exit 1
   else
