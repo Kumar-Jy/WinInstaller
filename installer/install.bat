@@ -1,8 +1,8 @@
 @echo off
 :: Check if font has already been set because if not then it will loop
 if "%1" neq "nofont" (
-    :: CMD font size set to approx. 55 in hex 0x00320000
-    reg add "HKCU\Console" /v FontSize /t REG_DWORD /d 0x00320000 /f >nul 2>&1
+    :: CMD font size set to approx. 34 in hex 0x00220000
+    reg add "HKCU\Console" /v FontSize /t REG_DWORD /d 0x00220000 /f >nul 2>&1
 	:: maximize CMD window
     reg add "HKCU\Console" /v WindowSize /t REG_DWORD /d 0x00190050 /f >nul 2>&1
     reg add "HKCU\Console" /v WindowPosition /t REG_DWORD /d 0x00000000 /f >nul 2>&1
