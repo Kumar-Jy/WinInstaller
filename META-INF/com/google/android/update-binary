@@ -24,11 +24,56 @@ ui_print() {
   done
 }
 
+print_centered() {
+  local text="$1"
+  # Use the second argument (if provided) or fall back to char_width, defaulting to 50
+  local width="${2:-${CHAR_WIDTH:-50}}"
+  local inner_width=$((width - 2))
+  local text_length=${#text}
+  while [ ${#text} -gt $inner_width ]; do
+    local line="${text:0:$inner_width}"
+    text="${text:$inner_width}"
+    print_centered_line "$line" "$width"
+  done
+  print_centered_line "$text" "$width"
+}
+
+print_centered_line() {
+  local text="$1"
+  local width="$2"
+  local inner_width=$((width - 2))
+  local text_length=${#text}
+  if [ "$text_length" -gt "$inner_width" ]; then
+    text="${text:0:$inner_width}" 
+    text_length=${#text}
+  fi
+  local padding_total=$((inner_width - text_length))
+  local left_padding=$((padding_total / 2))
+  local right_padding=$((padding_total - left_padding))
+  local line="* "
+  while [ "$left_padding" -gt 0 ]; do
+    line+=" "
+    left_padding=$((left_padding - 1))
+  done
+  line+="$text"
+  while [ "$right_padding" -gt 0 ]; do
+    line+=" "
+    right_padding=$((right_padding - 1))
+  done
+  line+=" *"
+  ui_print "$line"
+}
+
+nl_print_centered() { print_centered "$1"; ui_print " ";}
+ln_print_centered() { ui_print " "; print_centered "$1";}
+nln_print_centered() { ui_print " "; print_centered "$1"; ui_print " ";}
+print_exit() { ui_print " "; ui_print "$BANNER_EXIT";}
+print_line() { ui_print "$BANNER_LINE";}
+print_dline() { ui_print "$BANNER_DLINE";}
+
 abort() {
-  ui_print " "
-  ui_print "$BANNER_EXIT"
-  ui_print "$1"
-  ui_print " "
+  print_exit
+  nl_print_centered "$1"
   umount "$WIN_PATH" "$ESP_PATH"
   exit 1
 }
@@ -84,26 +129,6 @@ package_extract_file() {
   }
 }
 
-ui_print_wrapped() {
-  local text="$1"
-  local width="${2:-43}"
-  local prefix
-  prefix=$(echo "$text" | sed -E 's/^([[:space:]]*).*/\1/')
-  text="${text#"${prefix}"}"
-  if [ "${#text}" -le "$width" ]; then
-    ui_print "$prefix$text"
-    return
-  fi
-  ui_print "$prefix${text:0:$width}"
-  text="${text:$width}"
-  while [ "${#text}" -gt "$width" ]; do
-    ui_print "$prefix${text:0:$width}"
-    text="${text:$width}"
-  done
-
-  [ -n "$text" ] && ui_print "$prefix$text"
-}
-
 volumekey() {
   while true; do
     getevent -lc 1 2>&1 | grep VOLUME | grep " DOWN" > "$UPD_TEMP_FOLDER/events"
@@ -119,25 +144,26 @@ navigate_menu() {
   options=("$@")
   count=${#options[@]}
   selection=0
-  ui_print "----------------------------------------------------"
-  ui_print "  Use Volume up to navigate, Volume down to select. "
-  ui_print "----------------------------------------------------"
+  ui_print "$BANNER_LINE"
+  print_centered "Use Volume up to selcect/change the options,"
+  print_centered "Use Volume down to select and confirm"
+  ui_print "$BANNER_LINE"
   while true; do
     ui_print " "
     for i in $(seq 0 $((count - 1))); do
       if [ "$i" -eq "$selection" ]; then
-        ui_print "> ${options[i]}"
+        ui_print "-> ${options[i]} <-"
       else
-        ui_print "  ${options[i]}"
+        ui_print "   ${options[i]}"
       fi
     done
     if volumekey; then
       selection=$(( (selection + 1) % count ))
     else
-      ui_print " "
-	  ui_print "----------------------------------------------------"
-      ui_print " You selected: ${options[selection]}"
-      ui_print "----------------------------------------------------"
+      #ui_print " "
+	    #ui_print "$BANNER_LINE"
+      #print_centered "You selected: ${options[selection]}"
+      #ui_print "$BANNER_LINE"
       break
     fi
   done
@@ -146,11 +172,9 @@ navigate_menu() {
 verify_device() {
   current="$(getprop ro.product.device)"
   if [ "$current" != "$1" ]; then
-    ui_print ""
-    ui_print "$BANNER_EXIT"
-    ui_print " This script is only for $1 devices."
-    ui_print " Your device is: $current"
-    ui_print ""
+    print_exit
+    print_centered "This script is only for $1 devices."
+    nl_print_centered "Your device is: $current"
     exit 1
   fi
 }
@@ -158,43 +182,37 @@ verify_device() {
 round() { awk "BEGIN {print int($1 + 0.5)}"; }
 
 verify_part() {
-  UD_PATH="$BASE_PATH/userdata"
-
+  UD_PATH="$BASE_PATH/userdata" # Userdata partition block name
   if [ ! -e "$WIN_PATH" ] || [ ! -e "$ESP_PATH" ]; then
-    ui_print " "
-    ui_print "*---------------------Error!--------------------*"
-    ui_print "Required partitions ($WIN_PATH and/or $ESP_PATH) do not exist."
-    ui_print " "
-    exit 1
+    abort "Required partition ($WIN_PATH and/or $ESP_PATH) do not exist."
   fi
-
   local UD_GB=$(awk "BEGIN {print $(blockdev --getsize64 "$UD_PATH") / 1e9}")
   local WIN_GB=$(awk "BEGIN {print $(blockdev --getsize64 "$WIN_PATH") / 1e9}")
   local ESP_GB=$(awk "BEGIN {print $(blockdev --getsize64 "$ESP_PATH") / 1e6}")
-
   local UD_R=$(round "$UD_GB")
   local WIN_R=$(round "$WIN_GB")
   local ESP_R=$(round "$ESP_GB")
-
-  ui_print "              Userdata Size: ${UD_R}GB"
-  ui_print "                ESP Size: ${ESP_R}MB"
-  ui_print "               Windows Size: ${WIN_R}GB"
-
+  print_centered "Userdata Size: ${UD_R}GB"
+  print_centered "ESP Size: ${ESP_R}MB"
+  print_centered "Windows Size: ${WIN_R}GB"
   if [ "$WIN_R" -ge "$WIN_MIN_SIZE" ] && [ "$ESP_R" -ge "$ESP_MIN_SIZE" ]; then
-    ui_print "*      Partition size meets requirements.       *"
+    print_centered "Partition verifyied & meets requirements"
   else
-    ui_print " "
     #ui_print "*----------------------Note!---------------------*"
-    ui_print "$BANNER_EXIT"
-    ui_print "*   Partition size doesn't meet requirements.   *"
-    ui_print "At least ${WIN_MIN_SIZE}GB for Windows and ${ESP_MIN_SIZE}MB for ESP size are required."
-    ui_print " "
+    print_exit
+    print_centered "Partition size doesn't meet requirements."
+    nl_print_centered "Minimum ${WIN_MIN_SIZE}GB for Windows and ${ESP_MIN_SIZE}MB for ESP partition size are required."
     exit 1
   fi
 }
 
-run_gdisk() {
-  "$UPD_TEMP_FOLDER/gdisk" "$1" <<EOF
+run_gptfix() {
+  setup_gdisk
+  for i in a b c d e f g h i j k l m n o p q r s t u v w x y z; do
+    DEVICE="/dev/block/sd$i"
+    if [ -e "$DEVICE" ]; then
+      echo "Fixing GPT on $DEVICE" # echo Prints in /tmp/recovery.log
+      "$UPD_TEMP_FOLDER/gdisk" "$DEVICE" <<EOF
 x
 j
 
@@ -203,6 +221,10 @@ k
 w
 Y
 EOF
+    else
+      echo "Device $DEVICE not found, skipping."  # echo Prints in /tmp/recovery.log
+    fi
+  done
 }
 
 verify_battery() {
@@ -210,6 +232,7 @@ verify_battery() {
 }
 
 is_windows_installed() {
+  setup_wimlib
   umount "$WIN_PATH"
   mount.ntfs "$WIN_PATH" "$WIN_MOUNT_FOLDER" || { abort "Failed to mount $WIN_PATH"; }
   if [ -f "$WIN_MOUNT_FOLDER/Windows/explorer.exe" ]; then
@@ -246,10 +269,10 @@ win_esd_search() {
                /sdcard /external_sd /usbstorage /usb_otg; do
       WIN_IMAGE=$(find "$dir" $depth -type f \( -iname "*.esd" -o -iname "*.wim" \) \
                   ! -path "*/Android/*" 2>/dev/null | head -n 1)
-      [ -n "$WIN_IMAGE" ] && { ui_print_wrapped "   Found: $WIN_IMAGE"; return 0; }
+      [ -n "$WIN_IMAGE" ] && { print_centered "Found: $WIN_IMAGE"; return 0; }
     done
   done
-  abort "    Windows image file (ESD or WIM) not found     "
+  abort "Windows image file (ESD or WIM) not found"
 }
 
 find_index() {
@@ -260,11 +283,11 @@ find_index() {
     if [[ -n "$INDEX" ]]; then
       SELECTED_INDEX="$INDEX"
       SELECTED_EDITION="$EDITION"
-      ui_print_wrapped "   $SELECTED_EDITION found at Index No $SELECTED_INDEX "
+      print_centered "$SELECTED_EDITION found at Index $SELECTED_INDEX"
       return 0
     fi
   done
-  abort " No matching Windows edition found in $WIN_IMAGE"
+  abort "No matching Windows edition found in $WIN_IMAGE"
 }
 
 format_win() {

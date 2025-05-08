@@ -13,13 +13,13 @@ if "%1" neq "nofont" (
 
 setlocal enabledelayedexpansion
 echo Copyright (C) 2025-26 https://github.com/Kumar-jy, https://github.com/ArKT-7
-:: Set console mode
-mode 800
+:: Set console max char to 96 so the text can be wrapped to next line
+mode con: cols=96 
 echo.
 echo ============================================================
 echo        Welcome to Windows Installation in Xiaomi Pad 5    
 echo              Version: WinInstaller_Nabu_R8.2.5              
-echo              Date   : 07-May-2025                           
+echo              Date   : 09-May-2025                           
 echo              Made by: Kumar_Jy, ArKT                             
 echo          Help and suggestions: Sog, Andre_grams.        
 echo    Drivers And UEFI: Project-Aloha,map220v,remtrik And idk
@@ -295,4 +295,3 @@ echo           Cleaning Installation File........
 echo ============================================================
 cd %targetDrive%
 rmdir /s /q "%targetDrive%\installer"
-timeout /t 3
