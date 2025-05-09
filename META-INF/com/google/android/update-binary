@@ -95,6 +95,8 @@ aio_progress() {
     ui_print "Error: Duration value '$duration' is not a valid number"
     return 1
   fi
+  echo "set_progress $current_progress" >> "$UPD_INTERFACE"
+  sleep 0.05
   delta=$(awk "BEGIN { print $target - $current_progress }")
   echo "progress $delta $duration" >> "$UPD_INTERFACE"
   current_progress=$target
