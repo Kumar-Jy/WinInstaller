@@ -68,8 +68,17 @@ nl_print_centered() { print_centered "$1"; ui_print " ";}
 ln_print_centered() { ui_print " "; print_centered "$1";}
 nln_print_centered() { ui_print " "; print_centered "$1"; ui_print " ";}
 print_exit() { ui_print " "; ui_print "$BANNER_EXIT";}
-print_line() { ui_print "$BANNER_LINE";}
-print_dline() { ui_print "$BANNER_DLINE";}
+
+print_line() {
+  local char="${1:--}"
+  local width="${CHAR_WIDTH:-50}"
+  local line="*"
+  for _ in $(seq 1 "$width"); do
+    line="${line}${char}"
+  done
+  line="${line}*"
+  ui_print "$line"
+}
 
 abort() {
   print_exit
