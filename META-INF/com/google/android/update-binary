@@ -155,10 +155,10 @@ navigate_menu() {
   options=("$@")
   count=${#options[@]}
   selection=0
-  ui_print "$BANNER_LINE"
+  print_line
   print_centered "Use Volume up to selcect/change the options,"
   print_centered "Use Volume down to select and confirm"
-  ui_print "$BANNER_LINE"
+  print_line
   while true; do
     ui_print " "
     for i in $(seq 0 $((count - 1))); do
@@ -172,9 +172,9 @@ navigate_menu() {
       selection=$(( (selection + 1) % count ))
     else
       #ui_print " "
-	    #ui_print "$BANNER_LINE"
+      #print_line
       #print_centered "You selected: ${options[selection]}"
-      #ui_print "$BANNER_LINE"
+      #print_line
       break
     fi
   done
