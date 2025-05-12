@@ -20,8 +20,10 @@
 
 1. **Download and unpack** this repository as a zip.
 2. **Download the PE image** from [here](https://github.com/Kumar-Jy/WinInstaller/releases/download/WinPE/pe.img) and place it in the  `/installer` folder.
-3. **Add your device's UEFI image** (`uefi.img`) to the `/installer` folder.
-4. **Download the Drivers Pack** for your device, unpack it. Then copy all files/folders in `/installer/Driver` folder.
+3. **Download the sta.exe** from [here](https://raw.githubusercontent.com/n00b69/woa-helper/refs/heads/main/app/src/main/assets/sta.exe) and place it in the  `/installer` folder.
+4. **Add your device's UEFI image** (`uefi.img`) to the `/installer` folder.
+5. **Download the Drivers zip Pack** for your device, unpack it. Then copy all files/folders in `/installer/Driver` folder.
+6. **Download the woahelper.apk** from [here](https://github.com/n00b69/woa-helper/releases/tag/APK) and place it in the root directory.
 
 ---
 
@@ -31,6 +33,8 @@ Organize the folder structure as follows:
 
 ```plaintext
 WinInstaller.zip
+
+-woahelper.apk (app for dualboot)
 
 -installer (Folder)
        └── Driver (Folder)
