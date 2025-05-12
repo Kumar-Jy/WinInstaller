@@ -37,20 +37,20 @@ WinInstaller.zip
 -woahelper.apk (app for dualboot)
 
 -installer (Folder)
-       └── Driver (Folder)
-       └── install.bat (Batch script)
-       └── pe.img (WinPE image)
-       └── sta.exe (Executable file)
+       ├── Driver (Folder)
+       ├── install.bat (Batch script)
+       ├── pe.img (WinPE image)
+       ├── sta.exe (Executable file)
        └── uefi.img (UEFI image)
 
 -META-INF (Folder)
        └── com (Folder)
-           └── bin (Folder)
-           |   └── wimlib-imagex (Binary file)
-           |   └── gdisk (Binary file)
+           ├── bin (Folder)
+           │   ├── wimlib-imagex (Binary file)
+           │   └── gdisk (Binary file)
            └── google (Folder)
                └── android (Folder)
-                   └── update-binary (Binary script)
+                   ├── update-binary (Binary script)
                    └── updater-script (Binary script)
 ```
 
