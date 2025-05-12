@@ -12,7 +12,7 @@
 ### 📋 Prerequisites
 
 - Ensure all necessary partitions for Windows installation (such as `win` and `esp`) should already be created.
-- ⚠️ **Important**: The ESP partition size must be at least **350MB**.
+- ⚠️ **Important**: The ESP partition size must be at least **350MB**, for WIN it's recommend minimum **30GB**.
 
 ---
 
@@ -62,7 +62,7 @@ WinInstaller.zip
 
 ### 💻 Flashing Instructions
 
-1. **Download the Windows ESD image**:
+1. **Download the Windows ESD image from [woawin](https://arkt-7.github.io/woawin/)**:
    - Ensure it is in the on your same device for which you want to install.
 2. **Boot to TWRP/OrangeFox Recovery**:
    - Flash or sideload the `WinInstaller.zip` file.
