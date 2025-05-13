@@ -182,9 +182,9 @@ navigate_menu() {
 
 verify_device() {
   current="$(getprop ro.product.device)"
-  if [ "$current" != "$1" ]; then
+  if [ "$current" != "$DEVICE_CODE" ]; then
     print_exit
-    print_centered "This script is only for $1 devices."
+    print_centered "This script is only for $DEVICE_CODE devices."
     nl_print_centered "Your device is: $current"
     exit 1
   fi

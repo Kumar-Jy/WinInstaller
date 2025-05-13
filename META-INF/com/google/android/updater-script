@@ -27,16 +27,19 @@ WINDOWS_EDITIONS=(
 )
 CHAR_WIDTH=49 #for max character in one line, if exceed then it auto wrapped to next line
 BANNER_EXIT="*---------------------Error!----------------------*"
+DEVICE_NAME="Xiaomi Pad 5"
+WI_VERSION="WinInstaller_Nabu_R8.2.5"
+BUID_DATE="09-May-2025"
 #=======================UI-Prints=funtions-executions========================
 print_line =
-print_centered "Welcome to Windows Installation on Xiaomi Pad 5"
-print_centered "Version: WinInstaller_Nabu_R8.2.5"s
-print_centered "Build Date: 09-May-2025"
+print_centered "Welcome to Windows Installation on $DEVICE_NAME"
+print_centered "Version: $WI_VERSION"
+print_centered "Build Date: $BUID_DATE"
 print_centered "Made by: Kumar_Jy & ArKT"
 print_centered "Help and suggestions by: Sog, Andre_grams"
 print_centered "Drivers & UEFI: Project-Aloha,map220v,remtrik.."
 print_line =
-verify_device "$DEVICE_CODE"
+verify_device
 print_centered "Verifying required Partitions"
 verify_part
 print_line
