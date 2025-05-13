@@ -1,11 +1,9 @@
 # WinInstaller
 © 2025–2026
 --
-## --WILL UPADTE THIS PAGE LATER-- 
-
 ### 📄 Description
 
-**WinInstaller** provides a flashable zip (Without PC) for installing Windows on supported ARM64 devices.
+**WinInstaller** provides a flashable zip which can be flashed directly through recovery for installing Windows on supported ARM64 devices.
 
 ---
 
