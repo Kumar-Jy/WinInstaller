@@ -180,6 +180,104 @@ navigate_menu() {
   done
 }
 
+#TEST### testing auto-proceed option with a timeout set for certain seconds
+volumekey_TEST() {
+  # clear previous events
+  : > "$UPD_TEMP_FOLDER/events"
+  : > "$UPD_TEMP_FOLDER/raw_events"
+  # run getevent in background with longer polling window
+  getevent -lc 1 2>&1 > "$UPD_TEMP_FOLDER/raw_events" &
+  pid=$!
+  sleep 1 # i think it is stable as far and work almost 95% of time when button in pressed 
+  kill -0 $pid 2>/dev/null && kill $pid 2>/dev/null  # Check if process is running before killing
+
+  # filter for volume key events
+  grep VOLUME "$UPD_TEMP_FOLDER/raw_events" | grep " DOWN" > "$UPD_TEMP_FOLDER/events"
+
+  if grep -q "VOLUMEUP" "$UPD_TEMP_FOLDER/events"; then
+    echo "Volume Up detected" >> "$UPD_TEMP_FOLDER/debug.log"
+    return 0
+  elif grep -q "VOLUMEDOWN" "$UPD_TEMP_FOLDER/events"; then
+    echo "Volume Down detected" >> "$UPD_TEMP_FOLDER/debug.log"
+    return 1
+  fi
+  echo "No key detected" >> "$UPD_TEMP_FOLDER/debug.log"
+  return 2  # No key pressed
+}
+
+navigate_menu_TEST() {
+  options=("$@")
+  count=${#options[@]}
+  selection=0
+  start_time=$(date +%s)  # get current time in seconds
+  timeout_duration=10     # timeout duration in seconds (will set global as variable, later after testing)
+  last_selection=-1      # track last printed selection
+  last_countdown=-1      # track last printed countdown
+  print_line
+  print_centered "Use Volume up to select/change options"
+  print_centered "Use Volume down to confirm"
+  print_centered "Auto-proceed in $timeout_duration seconds..."
+  print_line
+  ui_print " "
+  for i in $(seq 0 $((count - 1))); do
+    if [ "$i" -eq "$selection" ]; then
+      ui_print "-> ${options[i]} <-"
+    else
+      ui_print "   ${options[i]}"
+    fi
+  done
+  last_selection=$selection
+
+  while true; do
+    # check for timeout
+    current_time=$(date +%s)
+    elapsed_time=$((current_time - start_time))
+    remaining_time=$((timeout_duration - elapsed_time))
+    # update countdown only when it changes
+    if [ "$remaining_time" -ne "$last_countdown" ] && [ "$remaining_time" -ge 0 ]; then
+      #ui_print "Auto-proceed in $remaining_time seconds..." # (for logging)
+      last_countdown=$remaining_time
+    fi
+    if [ "$elapsed_time" -ge "$timeout_duration" ]; then
+      selection=0  # default to first option on timeout (will change based on current selection)
+      ui_print " "
+      print_line
+      print_centered "Auto-selected: ${options[selection]}"
+      print_line
+      break
+    fi
+    # check for key press
+    volumekey_TEST
+    key_result=$?
+    if [ $key_result -eq 0 ]; then
+      selection=$(( (selection + 1) % count ))
+      start_time=$(date +%s)  # reset timeout on key press
+      # print menu again only if selection changed
+      if [ "$selection" -ne "$last_selection" ]; then
+        ui_print " "
+        for i in $(seq 0 $((count - 1))); do
+          if [ "$i" -eq "$selection" ]; then
+            ui_print "-> ${options[i]} <-"
+          else
+            ui_print "   ${options[i]}"
+          fi
+        done
+        last_selection=$selection
+      fi
+    elif [ $key_result -eq 1 ]; then
+      ui_print " "
+      print_line
+      print_centered "You selected: ${options[selection]}"
+      print_line
+      break
+    fi
+    #sleep 0.2  # Match sleep duration in volumekey (not need as far testing for stable and getting input each time button press)
+  done
+  return $selection
+}
+#TEST##########TEST###LMAO-WHAT-IM-TYPING####
+
+
 verify_device() {
   current="$(getprop ro.product.device)"
   if [ "$current" != "$DEVICE_CODE" ]; then
@@ -193,7 +291,7 @@ verify_device() {
 round() { awk "BEGIN {print int($1 + 0.5)}"; }
 
 verify_part() {
-  UD_PATH="$BASE_PATH/userdata" # Userdata partition block name
+  UD_PATH="$BASE_PATH/userdata" # Userdata partition block name (same for all devices)
   if [ ! -e "$WIN_PATH" ] || [ ! -e "$ESP_PATH" ]; then
     abort "Required partition ($WIN_PATH and/or $ESP_PATH) do not exist."
   fi
@@ -299,15 +397,17 @@ find_index() {
     fi
   done
   abort "No matching Windows edition found in $WIN_IMAGE"
-  #to-do print whatever edition in there
-  #might add volume button input to select and confirm edition 
+# TODO: print the detected Windows edition found in the image
+#       May add volume button input to allow user to select and confirm the edition
 }
 
 format_win() {
   umount "$WIN_PATH"
   mkfs.ntfs -f "$WIN_PATH" -L "$WIN_PART_NAME"
 }
-# might be better to combile both funtion to smth like setup_bin
+
+# might be better to combine both functions into one (e.g., setup_bin)
+# Could improve structure, but then slightly delay initial when ui_print during flashing zip
 setup_gdisk() {
   package_extract_file "META-INF/com/bin/gdisk" "$UPD_TEMP_FOLDER/gdisk"
   chmod 0777 "$UPD_TEMP_FOLDER/gdisk"
@@ -317,7 +417,7 @@ setup_wimlib() {
   package_extract_file "META-INF/com/bin/wimlib-imagex" "$UPD_TEMP_FOLDER/wimlib-imagex"
   chmod 0777 "$UPD_TEMP_FOLDER/wimlib-imagex"
 }
-# may be good but take some seconds more to extract
+
 rm -rf "$UPD_TEMP_FOLDER"
 mkdir -p "$UPD_TEMP_FOLDER"
 mkdir -p "$IMG_BACKUP_FOLDER"

@@ -5,33 +5,44 @@
 # Made for Windows Installation on WOA Devices 
 #
 
-#================================Configrations===============================
+# ================================ Configurations ================================
+# TO-DO: all configuration values will be moved to a separate file
+#       like in a main directory (wininstaller.conf), This will allow to modify settings safely
+#       without touching the core script, making it easier to use for different devices
 
-DEVICE_CODE="nabu" # Check and verify device with its codename
-BASE_PATH="/dev/block/by-name"  # Base path to named partition symlinks
-WIN_PATH="$BASE_PATH/win"  # Windows partition block name
-WIN_MIN_SIZE=30  # in GB
-ESP_PATH="$BASE_PATH/esp"  # ESP partition block name
-ESP_MIN_SIZE=349  # in MB
-CURRENT_BATTERY=$(cat /sys/class/power_supply/battery/capacity)
-REQUIRED_BATTERY=50  # Minimum required battery percentage to proceed
-PARTITION_BACKUP="boot dtbo vendor_boot fsc fsg modemst1 modemst2 persist" # set partiiton to backup auto handgle A/B non A/B device
-WIN_PART_NAME="WINNABU"  # Partiton name for format
+DEVICE_CODE="nabu"  # Device codename (ensure this matches your device)
+BASE_PATH="/dev/block/by-name"  # Base path for named partition symlinks
+WIN_PATH="$BASE_PATH/win"  # Path to the Windows partition block
+WIN_MIN_SIZE=30  # Minimum required size for Windows partition (in GB)
+ESP_PATH="$BASE_PATH/esp"  # Path to the EFI System Partition (ESP) block
+ESP_MIN_SIZE=349  # Minimum required size for ESP partition (in MB)
+CURRENT_BATTERY=$(cat /sys/class/power_supply/battery/capacity)  # Read current battery percentage
+REQUIRED_BATTERY=50  # Minimum battery percentage required to proceed with the installation
+PARTITION_BACKUP="boot dtbo vendor_boot fsc fsg modemst1 modemst2 persist"  # Partitions to back up, automatically handles A/B and non-A/B devices
+WIN_PART_NAME="WINNABU"  # Label/name for the Windows partition to used during formatting
+
 WINDOWS_EDITIONS=(
-"Windows 11 Pro"
-"Windows 11 IoT Enterprise LTSC"
-"Windows 11 Enterprise"
-"Windows 11 Home"
-"Windows 10 Pro"
-"Windows 10 Home"
-)
-CHAR_WIDTH=49 #for max character in one line, if exceed then it auto wrapped to next line
-BANNER_EXIT="*---------------------Error!----------------------*"
-DEVICE_NAME="Xiaomi Pad 5"
-WI_VERSION="WinInstaller_Nabu_R8.2.5"
-BUID_DATE="09-May-2025"
-#=======================UI-Prints=funtions-executions========================
-print_line =
+  "Windows 11 Pro"
+  "Windows 11 IoT Enterprise LTSC"
+  "Windows 11 Enterprise"
+  "Windows 11 Home"
+  "Windows 10 Pro"
+  "Windows 10 Home"
+)  # Priority-ordered list of supported Windows editions. The script checks each name from top to bottom and selects the first match found.
+
+CHAR_WIDTH=49  # Maximum no. of characters per line for formatted output, char exceeding this will wrap automatically to next line
+BANNER_EXIT="*---------------------Error!----------------------*"  # Banner to display on exit/abort
+DEVICE_NAME="Xiaomi Pad 5"  # Name of the device
+WI_VERSION="WinInstaller_Nabu_R8.2.5"  # Version-device for the Wininstaller
+BUID_DATE="09-May-2025"  # Build date of the installer
+
+# ======================= UI Prints / Functions / Execution ========================
+# NOTE: 95% of code moved to update-binary functions for modularity/no need changes
+# TO-DO: Add multi-language support for the print.
+#       Will implement this after figuring out proper handling of volume key input
+#       along with a timeout mechanism for user selections
+
+print_line = # Prints a banner line using CHAR_WIDTH length of '-' (or custom character), wrapped with '*' on both ends
 print_centered "Welcome to Windows Installation on $DEVICE_NAME"
 print_centered "Version: $WI_VERSION"
 print_centered "Build Date: $BUID_DATE"
@@ -42,7 +53,7 @@ print_line =
 verify_device
 print_centered "Verifying required Partitions"
 verify_part
-print_line
+print_line # Prints a banner line using CHAR_WIDTH length of '-' (or custom character), wrapped with '*' on both ends
 print_centered "Checking Battery Status"
 if verify_battery; then
 print_centered "Battery percentage is sufficient: $CURRENT_BATTERY%"
@@ -51,7 +62,7 @@ else
 fi
 print_line
 print_centered "Fixing GPT"
-aio_progress 0.5 10
+aio_progress 0.5 10   # start progress from 0% to 50% in 10 seconds
 run_gptfix
 print_line
 print_centered "Extracting boot and modem to /sdcard/backup"
@@ -59,11 +70,15 @@ backup_partitions $PARTITION_BACKUP
 print_line
 print_centered "Checking if Windows is already installed"
 print_line
-aio_progress 0.05 0
-aio_progress 0.9 80
+aio_progress 0.5 0    # instantly moves progress back to 5% (for reset or rewind)
+aio_progress 0.9 80   # moves progress from 5% to 90% in 80 seconds
 if is_windows_installed; then
 print_centered "Windows is already installed"
-#to-do add volume button selection to choose re-install again with windows format or continue
+# TO-DO: Add support for using volume buttons to choose between:
+#       1) Reinstall with Windows partition formatting
+#       2) Continue without formatting
+# Challenge: Need to implement a timeout mechanism that works alongside
+#            volume key detection without causing input conflicts or delays
 if is_partition_rw; then
 print_centered "Skipping format and copy steps"
 print_centered "and processing for Drivers Installation"
@@ -96,9 +111,10 @@ nl_print_centered "Reboot to Android and check the ESD/WIM file."
 umount "$WIN_PATH"
 exit 1
 fi
-aio_progress 0.5 0
-#After this idk if i'll do modular, but not need ig, idk also already added handle non A/B device in oneliner like before
-aio_progress 0.95 50
+# Not sure if I'll make any improvements/modular here, but may be as of now currently doesn't seem necessary
+# Already handled non-A/B device support in a one-liner
+aio_progress 0.5 0    # instantly moves progress back to 5% (for reset or rewind)
+aio_progress 0.95 50  # moves progress from 50% to 95% in 50 seconds
 print_line
 print_centered "Extracting Installation File";
 package_extract_folder "installer" "$WIN_MOUNT_FOLDER"
