@@ -299,6 +299,8 @@ find_index() {
     fi
   done
   abort "No matching Windows edition found in $WIN_IMAGE"
+  #to-do print whatever edition in there
+  #might add volume button input to select and confirm edition 
 }
 
 format_win() {

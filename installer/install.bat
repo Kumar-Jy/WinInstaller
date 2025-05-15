@@ -13,8 +13,10 @@ if "%1" neq "nofont" (
 
 setlocal enabledelayedexpansion
 echo Copyright (C) 2025-26 https://github.com/Kumar-jy, https://github.com/ArKT-7
-:: Set console max char to 96 so the text can be wrapped to next line
-mode con: cols=96 
+:: Set console max char to 99 (as best for 34 font size) so the text can be wrapped to next line
+::mode con: cols=99
+:: idk but why wraping needed
+mode 800
 echo.
 echo ============================================================
 echo        Welcome to Windows Installation in Xiaomi Pad 5    
