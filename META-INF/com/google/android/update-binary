@@ -11,6 +11,7 @@ UPD_TEMP_FOLDER="/tmp/wininstaller"
 IMG_BACKUP_FOLDER="$UPD_TEMP_FOLDER/backup"
 WIN_MOUNT_FOLDER="$UPD_TEMP_FOLDER/win"
 CONFIG_FILE="$UPD_TEMP_FOLDER/wininstaller.conf"
+PE_INSTALLER="$WIN_MOUNT_FOLDER/installer/install.bat"
 set -o pipefail
 
 ui_print() {
@@ -139,7 +140,7 @@ package_extract_file() {
   ui_print " Failed to extract $1"
   return 1
   }
-  # NOTE: Add to check if teh file exists in first place or not then print error and exit maybe
+  # TO-DO: Add to check if the file exists in the first place before extracting if not then print error and also exit maybe
 }
 
 volumekey() {

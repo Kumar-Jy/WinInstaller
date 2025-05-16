@@ -29,6 +29,7 @@ echo ============================================================
 echo.
 
 :: Initialize variables
+set esplabel="ESPNABU"
 set flashboot=
 set targetDrive=
 
@@ -233,17 +234,17 @@ if not defined VolumeNumber (
 :volFound
 echo Found FAT32 volume with ESP or PE, Volume Number %VolumeNumber%
 
-:: Format the volume, assign the drive letter S, and label it "ESPNABU"
+:: Format the volume, assign the drive letter S, and label it "%esplabel%"
 (
     echo select volume %VolumeNumber%
-    echo format fs=fat32 quick label=ESPNABU
+    echo format fs=fat32 quick label=%esplabel%
     echo assign letter=S
 ) | diskpart
 
 echo.
 echo ============================================================
 echo         Volume No. %VolumeNumber% has been formatted with FAT32,
-echo           Assigned letter S, and labeled "ESPNABU".
+echo           Assigned letter S, and labeled "%esplabel%".
 echo ============================================================
 echo.
 echo.

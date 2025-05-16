@@ -89,6 +89,7 @@ aio_progress 0.95 50  # moves progress from 50% to 95% in 50 seconds
 print_line
 print_centered "Extracting Installation File";
 package_extract_folder "installer" "$WIN_MOUNT_FOLDER"
+sed -i "s/^set esplabel=.*/set esplabel=\"$ESP_PART_NAME\"/" "$PE_INSTALLER"
 package_extract_folder "ToolBox" "$WIN_MOUNT_FOLDER"
 package_extract_file "woahelper.apk" "/sdcard/woahelper.apk"
 print_line
