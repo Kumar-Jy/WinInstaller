@@ -1,5 +1,5 @@
 # WinInstaller
-© 2025–2026
+#### © 2025–2026
 --
 ### 📄 Description
 
@@ -22,7 +22,8 @@
 4. **Add your device's UEFI image** (`uefi.img`) to the `/installer` folder.
 5. **Download the Drivers zip Pack** for your device, unpack it. Then copy all files/folders in `/installer/Driver` folder.
 6. **Download the woahelper.apk** from [here](https://github.com/n00b69/woa-helper/releases/tag/APK) and place it in the root directory.
-
+7.  Modify `wininstaller.conf` in the main directory to match your device's configuration.
+   
 ---
 
 ### 📂 Folder Structure
@@ -32,6 +33,7 @@ Organize the folder structure as follows:
 ```plaintext
 WinInstaller.zip
 
+-wininstaller.conf (configration file for wininstaller)
 -woahelper.apk (app for dualboot)
 
 -installer (Folder)
