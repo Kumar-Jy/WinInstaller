@@ -5,37 +5,8 @@
 # Made for Windows Installation on WOA Devices 
 #
 
-# ================================ Configurations ================================
-# TO-DO: all configuration values will be moved to a separate file
-#       like in a main directory (wininstaller.conf), This will allow to modify settings safely
-#       without touching the core script, making it easier to use for different devices
-
-DEVICE_CODE="nabu"  # Device codename (ensure this matches your device)
-BASE_PATH="/dev/block/by-name"  # Base path for named partition symlinks
-WIN_PATH="$BASE_PATH/win"  # Path to the Windows partition block
-WIN_MIN_SIZE=30  # Minimum required size for Windows partition (in GB)
-ESP_PATH="$BASE_PATH/esp"  # Path to the EFI System Partition (ESP) block
-ESP_MIN_SIZE=349  # Minimum required size for ESP partition (in MB)
-CURRENT_BATTERY=$(cat /sys/class/power_supply/battery/capacity)  # Read current battery percentage
-REQUIRED_BATTERY=50  # Minimum battery percentage required to proceed with the installation
-PARTITION_BACKUP="boot dtbo vendor_boot fsc fsg modemst1 modemst2 persist"  # Partitions to back up, automatically handles A/B and non-A/B devices
-WIN_PART_NAME="WINNABU"  # Label/name for the Windows partition to used during formatting
-
-WINDOWS_EDITIONS=(
-  "Windows 11 Pro"
-  "Windows 11 IoT Enterprise LTSC"
-  "Windows 11 Enterprise"
-  "Windows 11 Home"
-  "Windows 10 Pro"
-  "Windows 10 Home"
-)  # Priority-ordered list of supported Windows editions. The script checks each name from top to bottom and selects the first match found.
-
-CHAR_WIDTH=49  # Maximum no. of characters per line for formatted output, char exceeding this will wrap automatically to next line
-BANNER_EXIT="*---------------------Error!----------------------*"  # Banner to display on exit/abort
-DEVICE_NAME="Xiaomi Pad 5"  # Name of the device
-WI_VERSION="WinInstaller_Nabu_R8.2.5"  # Version-device for the Wininstaller
-BUID_DATE="09-May-2025"  # Build date of the installer
-
+# ================= Load Config =================
+source "$CONFIG_FILE"
 # ======================= UI Prints / Functions / Execution ========================
 # NOTE: 95% of code moved to update-binary functions for modularity/no need changes
 # TO-DO: Add multi-language support for the print.
@@ -139,7 +110,7 @@ print_centered "ask for help on Telegram: @wininstaller"
 print_centered "Thanks to all WOA Developers & Maintainers"
 print_line =
 options=("Option 1: Reboot device" "Option 2: Exit")
-navigate_menu "${options[@]}"
+navigate_menu_TEST "${options[@]}"
 case "$selection" in
   0)
     ui_print "rebooting now!"

@@ -20,8 +20,8 @@ mode 800
 echo.
 echo ============================================================
 echo        Welcome to Windows Installation in Xiaomi Pad 5    
-echo              Version: WinInstaller_Nabu_R8.2.5              
-echo              Date   : 09-May-2025                           
+echo              Version: WinInstaller_Nabu_BETA-3.0              
+echo              Date   : 16-May-2025                           
 echo              Made by: Kumar_Jy, ArKT                             
 echo          Help and suggestions: Sog, Andre_grams.        
 echo    Drivers And UEFI: Project-Aloha,map220v,remtrik And idk

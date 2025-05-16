@@ -8,8 +8,9 @@
 UPD_ZIP="$3"
 UPD_INTERFACE="/proc/self/fd/$2"
 UPD_TEMP_FOLDER="/tmp/wininstaller"
-IMG_BACKUP_FOLDER="/tmp/wininstaller/backup"
-WIN_MOUNT_FOLDER="/tmp/wininstaller/win"
+IMG_BACKUP_FOLDER="$UPD_TEMP_FOLDER/backup"
+WIN_MOUNT_FOLDER="$UPD_TEMP_FOLDER/win"
+CONFIG_FILE="$UPD_TEMP_FOLDER/wininstaller.conf"
 set -o pipefail
 
 ui_print() {
@@ -138,6 +139,7 @@ package_extract_file() {
   ui_print " Failed to extract $1"
   return 1
   }
+  # NOTE: Add to check if teh file exists in first place or not then print error and exit maybe
 }
 
 volumekey() {
@@ -422,6 +424,22 @@ rm -rf "$UPD_TEMP_FOLDER"
 mkdir -p "$UPD_TEMP_FOLDER"
 mkdir -p "$IMG_BACKUP_FOLDER"
 mkdir -p "$WIN_MOUNT_FOLDER"
+
+package_extract_file "wininstaller.conf" "$CONFIG_FILE" || {
+    ui_print "Cannot extract wininstaller.conf file, do you have it in the package?"
+    exit 1
+}
+
+if [ ! -s "$CONFIG_FILE" ]; then
+    ui_print " "
+    ui_print "Error: Wininstaller Configuration file not found or empty"
+    ui_print " " 
+    ui_print "Make sure you have a file (wininstaller.conf) in main directory with all configration"
+    ui_print " " 
+    exit 1
+fi
+
+chmod 777 "$UPD_TEMP_FOLDER/wininstaller.conf"
 
 package_extract_file "META-INF/com/google/android/updater-script" "$UPD_TEMP_FOLDER/updater-script" || {
     ui_print "Cannot extract updater-script. Do you have it in package?"
