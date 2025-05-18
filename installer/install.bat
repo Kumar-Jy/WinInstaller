@@ -17,11 +17,16 @@ echo Copyright (C) 2025-26 https://github.com/Kumar-jy, https://github.com/ArKT-
 ::mode con: cols=99
 :: idk but why wraping needed
 mode 800
+:: wininstaller.conf variables
+set ESP_PART_NAME=
+set WI_VERSION=
+set BUID_DATE=
+set DEVICE_NAME=
 echo.
 echo ============================================================
-echo        Welcome to Windows Installation in Xiaomi Pad 5    
-echo              Version: WinInstaller_Nabu_BETA-3.0              
-echo              Date   : 16-May-2025                           
+echo        Welcome to Windows Installation in %DEVICE_NAME%    
+echo              Version: %WI_VERSION%              
+echo              Date   : %BUID_DATE%                           
 echo              Made by: Kumar_Jy, ArKT                             
 echo          Help and suggestions: Sog, Andre_grams.        
 echo    Drivers And UEFI: Project-Aloha,map220v,remtrik And idk
@@ -29,7 +34,6 @@ echo ============================================================
 echo.
 
 :: Initialize variables
-set esplabel="ESPNABU"
 set flashboot=
 set targetDrive=
 
@@ -37,6 +41,7 @@ set targetDrive=
 for %%G in (C D E F G H I J K L M N O P Q R S T U V W X Y Z) do (
     if exist %%G:\installer\install.bat (
 		set flashboot=%%G:\installer\sta.exe -p %%G:\boot.img -n 
+        :: %%G:\installer\sta.exe -p %%G:\installer\uefi2.img -n 
 		set targetDrive=%%G:
         goto :found
     )
@@ -93,7 +98,7 @@ echo ============================================================
 echo Searching index of Windows in the following order ........
 echo       1.  Windows 11 Pro
 echo       2.  Windows 11 IoT Enterprise LTSC
-echo.      3.  Windows 11 Enterprise
+echo       3.  Windows 11 Enterprise
 echo       4.  Windows 11 Home
 echo       5.  Windows 10 Pro
 echo       5.  Windows 10 Home
@@ -234,17 +239,17 @@ if not defined VolumeNumber (
 :volFound
 echo Found FAT32 volume with ESP or PE, Volume Number %VolumeNumber%
 
-:: Format the volume, assign the drive letter S, and label it "%esplabel%"
+:: Format the volume, assign the drive letter S, and label it with value of ESP_PART_NAME in conf file
 (
     echo select volume %VolumeNumber%
-    echo format fs=fat32 quick label=%esplabel%
+    echo format fs=fat32 quick label=%ESP_PART_NAME%
     echo assign letter=S
 ) | diskpart
 
 echo.
 echo ============================================================
 echo         Volume No. %VolumeNumber% has been formatted with FAT32,
-echo           Assigned letter S, and labeled "%esplabel%".
+echo           Assigned letter S, and labeled %ESP_PART_NAME%.
 echo ============================================================
 echo.
 echo.
@@ -252,9 +257,7 @@ echo ============================================================
 echo           Creating bootloader file...
 echo ============================================================
 echo.
-
 bcdboot %targetDrive%\windows /s S: /f UEFI
-
 echo.
 echo ============================================================
 echo           Windows installation process

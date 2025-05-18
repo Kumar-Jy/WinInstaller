@@ -136,11 +136,14 @@ package_extract_file() {
     return 1
   fi
   command -v unzip >/dev/null || { ui_print "Error: unzip not found"; return 1; }
-  unzip -p "$UPD_ZIP" "$1" > "$2" || {
-  ui_print " Failed to extract $1"
-  return 1
-  }
-  # TO-DO: Add to check if the file exists in the first place before extracting if not then print error and also exit maybe
+  if ! unzip -l "$UPD_ZIP" "$1" | grep -q "$1"; then
+    ui_print " Error: File '$1' not found in package"
+    return 1
+  fi
+  if ! unzip -p "$UPD_ZIP" "$1" > "$2"; then
+    ui_print " Failed to extract $1"
+    return 1
+  fi
 }
 
 volumekey() {
@@ -183,20 +186,14 @@ navigate_menu() {
   done
 }
 
-#TEST### testing auto-proceed option with a timeout set for certain seconds
-volumekey_TEST() {
-  # clear previous events
+volumekey_timeout() {
   : > "$UPD_TEMP_FOLDER/events"
   : > "$UPD_TEMP_FOLDER/raw_events"
-  # run getevent in background with longer polling window
   getevent -lc 1 2>&1 > "$UPD_TEMP_FOLDER/raw_events" &
   pid=$!
-  sleep 1 # i think it is stable as far and work almost 95% of time when button in pressed 
-  kill -0 $pid 2>/dev/null && kill $pid 2>/dev/null  # Check if process is running before killing
-
-  # filter for volume key events
+  sleep 1
+  kill -0 $pid 2>/dev/null && kill $pid 2>/dev/null
   grep VOLUME "$UPD_TEMP_FOLDER/raw_events" | grep " DOWN" > "$UPD_TEMP_FOLDER/events"
-
   if grep -q "VOLUMEUP" "$UPD_TEMP_FOLDER/events"; then
     echo "Volume Up detected" >> "$UPD_TEMP_FOLDER/debug.log"
     return 0
@@ -205,81 +202,74 @@ volumekey_TEST() {
     return 1
   fi
   echo "No key detected" >> "$UPD_TEMP_FOLDER/debug.log"
-  return 2  # No key pressed
+  return 2  
 }
 
-navigate_menu_TEST() {
+navigate_menu_timeout() {
   options=("$@")
   count=${#options[@]}
   selection=0
-  start_time=$(date +%s)  # get current time in seconds
-  timeout_duration=10     # timeout duration in seconds (will set global as variable, later after testing)
-  last_selection=-1      # track last printed selection
-  last_countdown=-1      # track last printed countdown
+  start_time=$(date +%s)
+  timeout_duration="${SELECTION_TIMEOUT:-10}"
+  last_selection=-1
+  last_countdown=-1
   print_line
   print_centered "Use Volume up to select/change options"
   print_centered "Use Volume down to confirm"
-  print_centered "Auto-proceed in $timeout_duration seconds..."
+  print_centered "Auto-confirm in $timeout_duration seconds..."
   print_line
   ui_print " "
   for i in $(seq 0 $((count - 1))); do
     if [ "$i" -eq "$selection" ]; then
-      ui_print "-> ${options[i]} <-"
+      ui_print " -> ${options[i]} <-"
     else
-      ui_print "   ${options[i]}"
+      ui_print "    ${options[i]}"
     fi
   done
   last_selection=$selection
-
   while true; do
-    # check for timeout
     current_time=$(date +%s)
     elapsed_time=$((current_time - start_time))
     remaining_time=$((timeout_duration - elapsed_time))
-    # update countdown only when it changes
     if [ "$remaining_time" -ne "$last_countdown" ] && [ "$remaining_time" -ge 0 ]; then
       #ui_print "Auto-proceed in $remaining_time seconds..." # (for logging)
       last_countdown=$remaining_time
     fi
     if [ "$elapsed_time" -ge "$timeout_duration" ]; then
-      selection=0  # default to first option on timeout (will change based on current selection)
+      #ui_print " "
+      #print_line
+      #print_centered "Auto-selected: ${options[selection]}"
+      #print_line
       ui_print " "
-      print_line
-      print_centered "Auto-selected: ${options[selection]}"
-      print_line
       break
     fi
-    # check for key press
-    volumekey_TEST
+    volumekey_timeout
     key_result=$?
     if [ $key_result -eq 0 ]; then
       selection=$(( (selection + 1) % count ))
       start_time=$(date +%s)  # reset timeout on key press
-      # print menu again only if selection changed
       if [ "$selection" -ne "$last_selection" ]; then
         ui_print " "
         for i in $(seq 0 $((count - 1))); do
           if [ "$i" -eq "$selection" ]; then
-            ui_print "-> ${options[i]} <-"
+            ui_print " -> ${options[i]} <-"
           else
-            ui_print "   ${options[i]}"
+            ui_print "    ${options[i]}"
           fi
         done
         last_selection=$selection
       fi
     elif [ $key_result -eq 1 ]; then
+      #ui_print " "
+      #print_line
+      #print_centered "You selected: ${options[selection]}"
+      #print_line
       ui_print " "
-      print_line
-      print_centered "You selected: ${options[selection]}"
-      print_line
       break
     fi
-    #sleep 0.2  # Match sleep duration in volumekey (not need as far testing for stable and getting input each time button press)
   done
   return $selection
 }
-#TEST##########TEST###LMAO-WHAT-IM-TYPING####
-
 
 verify_device() {
   current="$(getprop ro.product.device)"
@@ -427,23 +417,18 @@ mkdir -p "$IMG_BACKUP_FOLDER"
 mkdir -p "$WIN_MOUNT_FOLDER"
 
 package_extract_file "wininstaller.conf" "$CONFIG_FILE" || {
-    ui_print "Cannot extract wininstaller.conf file, do you have it in the package?"
+    ui_print " "
+    ui_print " Error: Wininstaller Configuration file not found or empty"
+    ui_print " " 
+    ui_print " Make sure you have a file (wininstaller.conf) in main directory with all configration"
+    ui_print " " 
     exit 1
 }
-
-if [ ! -s "$CONFIG_FILE" ]; then
-    ui_print " "
-    ui_print "Error: Wininstaller Configuration file not found or empty"
-    ui_print " " 
-    ui_print "Make sure you have a file (wininstaller.conf) in main directory with all configration"
-    ui_print " " 
-    exit 1
-fi
 
 chmod 777 "$UPD_TEMP_FOLDER/wininstaller.conf"
 
 package_extract_file "META-INF/com/google/android/updater-script" "$UPD_TEMP_FOLDER/updater-script" || {
-    ui_print "Cannot extract updater-script. Do you have it in package?"
+    ui_print " Cannot extract updater-script. Do you have it in package?"
     exit 1
 }
 chmod 777 "$UPD_TEMP_FOLDER/updater-script"
@@ -452,7 +437,7 @@ chmod 777 "$UPD_TEMP_FOLDER/updater-script"
 if grep -q "^#!/" "$UPD_TEMP_FOLDER/updater-script"; then
     . "$UPD_TEMP_FOLDER/updater-script" "$@"
 else
-    ui_print "Error: updater-script is not a shell script"
+    ui_print " Error: updater-script is not a shell script"
     exit 1
 fi
 exit $?
