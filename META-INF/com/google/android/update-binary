@@ -150,9 +150,9 @@ volumekey() {
   while true; do
     getevent -lc 1 2>&1 | grep VOLUME | grep " DOWN" > "$UPD_TEMP_FOLDER/events"
     if grep -q "VOLUMEUP" "$UPD_TEMP_FOLDER/events"; then
-      return 0
-    elif grep -q "VOLUMEDOWN" "$UPD_TEMP_FOLDER/events"; then
       return 1
+    elif grep -q "VOLUMEDOWN" "$UPD_TEMP_FOLDER/events"; then
+      return 0
     fi
   done
 }
@@ -162,8 +162,8 @@ navigate_menu() {
   count=${#options[@]}
   selection=0
   print_line
-  print_centered "Use Volume up to selcect/change the options,"
-  print_centered "Use Volume down to select and confirm"
+  print_centered "Use Volume down to selcect/change the options,"
+  print_centered "Use Volume up to select and confirm"
   print_line
   while true; do
     ui_print " "
@@ -196,10 +196,10 @@ volumekey_timeout() {
   grep VOLUME "$UPD_TEMP_FOLDER/raw_events" | grep " DOWN" > "$UPD_TEMP_FOLDER/events"
   if grep -q "VOLUMEUP" "$UPD_TEMP_FOLDER/events"; then
     echo "Volume Up detected" >> "$UPD_TEMP_FOLDER/debug.log"
-    return 0
+    return 1
   elif grep -q "VOLUMEDOWN" "$UPD_TEMP_FOLDER/events"; then
     echo "Volume Down detected" >> "$UPD_TEMP_FOLDER/debug.log"
-    return 1
+    return 0
   fi
   echo "No key detected" >> "$UPD_TEMP_FOLDER/debug.log"
   return 2  
@@ -214,8 +214,8 @@ navigate_menu_timeout() {
   last_selection=-1
   last_countdown=-1
   print_line
-  print_centered "Use Volume up to select/change options"
-  print_centered "Use Volume down to confirm"
+  print_centered "Use Volume down to select/change options"
+  print_centered "Use Volume up to confirm"
   print_centered "Auto-confirm in $timeout_duration seconds..."
   print_line
   ui_print " "
