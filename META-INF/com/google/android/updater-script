@@ -19,7 +19,7 @@ print_centered "Version: $WI_VERSION"
 print_centered "Build Date: $BUID_DATE"
 print_centered "Made by: Kumar_Jy & ArKT"
 print_centered "Help and suggestions by: Sog, Andre_grams"
-print_centered "Drivers & UEFI: Project-Aloha,map220v,remtrik.."
+print_centered "Drivers & UEFI: $MAINTAINER"
 print_line =
 verify_device
 print_centered "Verifying required Partitions"
