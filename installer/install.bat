@@ -22,282 +22,126 @@ set ESP_PART_NAME=
 set WI_VERSION=
 set BUID_DATE=
 set DEVICE_NAME=
-echo.
+set SECURE_BOOT=
+set MAINTAINER=
+echo(
 echo ============================================================
 echo        Welcome to Windows Installation in %DEVICE_NAME%    
 echo              Version: %WI_VERSION%              
 echo              Date   : %BUID_DATE%                           
 echo              Made by: Kumar_Jy, ArKT                             
 echo          Help and suggestions: Sog, Andre_grams.        
-echo    Drivers And UEFI: Project-Aloha,map220v,remtrik And idk
+echo    Drivers And UEFI: %MAINTAINER%
 echo ============================================================
-echo.
+echo(
+if not exist "%~d0\boot.img" echo Failed to find the boot image. & goto fail
+if not exist "%~dp0sta.exe" echo Failed to find sta.exe. & goto fail
+"%~dp0sta" -p "%~d0\boot.img" -n || echo Failed to flash the boot image. && goto fail
 
-:: Initialize variables
-set flashboot=
-set targetDrive=
+echo(
+echo ============================================================
+echo             Checking for Windows installation...
+echo ============================================================
+echo(
 
-:: Loop through all drives to find the image file
-for %%G in (C D E F G H I J K L M N O P Q R S T U V W X Y Z) do (
-    if exist %%G:\installer\install.bat (
-		set flashboot=%%G:\installer\sta.exe -p %%G:\boot.img -n 
-        :: %%G:\installer\sta.exe -p %%G:\installer\uefi2.img -n 
-		set targetDrive=%%G:
-        goto :found
-    )
-)
-
-echo install.bat not found.
-echo Take picture of error, force Reboot and ask for help...
-pause
-exit /b 1
-
-:found
-
-:: Check if Windows is already installed
-if exist %targetDrive%\Windows\Explorer.exe (
+rem Check if Windows is already installed
+if exist "%~d0\Windows\explorer.exe" (
     echo Windows is already installed.
-    goto :formatAndAssign
+    goto formatAndAssign
+) else (
+    echo windows not installed
+    goto fail
 )
-
-echo.
-echo ============================================================
-echo             Searching for the index value
-echo                 of "Windows Image"...
-echo ============================================================
-echo.
-
-:: Initialize variables
-set imageFile=
-
-:: Loop through all drives to find the image file
-for %%G in (C D E F G H I J K L M N O P Q R S T U V W X Y Z) do (
-    if exist %%G:\installer\install.esd (
-        set imageFile=%%G:\installer\install.esd
-        goto :found
-    ) else if exist %%G:\installer\install.wim (
-	set imageFile=%%G:\installer\install.wim
-        goto :found
-    )
-)
-
-echo Neither ESD nor WIM file found on any drive.
-echo Take picture of error, force Reboot and ask for help...
-call %flashboot%
-pause
-exit /b 1
-
-:found
-echo.
-echo ============================================================
-echo           Image file found at %imageFile%
-echo           Windows drive set to %targetDrive%
-echo ============================================================
-echo.
-echo ============================================================
-echo Searching index of Windows in the following order ........
-echo       1.  Windows 11 Pro
-echo       2.  Windows 11 IoT Enterprise LTSC
-echo       3.  Windows 11 Enterprise
-echo       4.  Windows 11 Home
-echo       5.  Windows 10 Pro
-echo       5.  Windows 10 Home
-echo ============================================================
-echo.
-
-:: Initialize index variable
-set index=
-set Name=""
-
-:: Find the index for Windows 11 Pro
-for /f "tokens=2 delims=: " %%i in ('dism /Get-WimInfo /WimFile:%imageFile% ^| findstr /i /c:"Index :"') do (
-    set currentIndex=%%i
-    for /f "tokens=*" %%j in ('dism /Get-WimInfo /WimFile:%imageFile% /Index:%%i ^| findstr /i /c:"Name : Windows 11 Pro"') do (
-        set index=%%i
-        set Name="Windows 11 Pro"
-        goto :indexFound
-    )
-)
-if "%index%"=="" echo "Windows 11 Pro not found in the image file."
-
-:: Find the index for Windows 11 IoT Enterprise LTSC
-if "%index%"=="" (
-    for /f "tokens=2 delims=: " %%i in ('dism /Get-WimInfo /WimFile:%imageFile% ^| findstr /i /c:"Index :"') do (
-        set currentIndex=%%i
-        for /f "tokens=*" %%j in ('dism /Get-WimInfo /WimFile:%imageFile% /Index:%%i ^| findstr /i /c:"Name : Windows 11 IoT Enterprise LTSC"') do (
-            set index=%%i
-            set Name="Windows 11 IoT Enterprise LTSC"
-            goto :indexFound
-        )
-    )
-)
-if "%index%"=="" echo "Windows 11 IoT Enterprise LTSC not found in the image file."
-
-:: Find the index for Windows 11 Enterprise
-if "%index%"=="" (
-    for /f "tokens=2 delims=: " %%i in ('dism /Get-WimInfo /WimFile:%imageFile% ^| findstr /i /c:"Index :"') do (
-        set currentIndex=%%i
-        for /f "tokens=*" %%j in ('dism /Get-WimInfo /WimFile:%imageFile% /Index:%%i ^| findstr /i /c:"Name : Windows 11 Enterprise"') do (
-            set index=%%i
-            set Name="Windows 11 Enterprise"
-            goto :indexFound
-        )
-    )
-)
-if "%index%"=="" echo "Windows 11 Enterprise not found in the image file."
-
-:: Find the index for Windows 11 Home
-if "%index%"=="" (
-    for /f "tokens=2 delims=: " %%i in ('dism /Get-WimInfo /WimFile:%imageFile% ^| findstr /i /c:"Index :"') do (
-        set currentIndex=%%i
-        for /f "tokens=*" %%j in ('dism /Get-WimInfo /WimFile:%imageFile% /Index:%%i ^| findstr /i /c:"Name : Windows 11 Home"') do (
-            set index=%%i
-            set Name="Windows 11 Home"
-            goto :indexFound
-        )
-    )
-)
-if "%index%"=="" echo "Windows 11 Home not found in the image file."
-
-:: Find the index for Windows 10 Pro
-if "%index%"=="" (
-    for /f "tokens=2 delims=: " %%i in ('dism /Get-WimInfo /WimFile:%imageFile% ^| findstr /i /c:"Index :"') do (
-        set currentIndex=%%i
-        for /f "tokens=*" %%j in ('dism /Get-WimInfo /WimFile:%imageFile% /Index:%%i ^| findstr /i /c:"Name : Windows 10 Pro"') do (
-            set index=%%i
-            set Name="Windows 10 Pro"
-            goto :indexFound
-        )
-    )
-)
-if "%index%"=="" echo "Windows 10 Pro not found in the image file."
-
-:: Find the index for Windows 10 Home
-if "%index%"=="" (
-    for /f "tokens=2 delims=: " %%i in ('dism /Get-WimInfo /WimFile:%imageFile% ^| findstr /i /c:"Index :"') do (
-        set currentIndex=%%i
-        for /f "tokens=*" %%j in ('dism /Get-WimInfo /WimFile:%imageFile% /Index:%%i ^| findstr /i /c:"Name : Windows 10 Home"') do (
-            set index=%%i
-            set Name="Windows 10 Home"
-            goto :indexFound
-        )
-    )
-)
-if "%index%"=="" (
-    echo "Index not found for the specified Windows version."
-    echo "Please check your Windows image and restart installation."
-    call %flashboot%
-    pause
-    exit /b
-)
-
-:indexFound
-echo ============================================================
-echo           Index value %index% found for %Name%
-echo           starting windows installation.....
-echo ============================================================
-echo.
-
-:: Apply the selected index to the target drive
-echo Applying image to %targetDrive%...
-dism /Apply-Image /ImageFile:%imageFile% /Index:%index% /ApplyDir:%targetDrive%
-echo Image applied successfully!
-echo.
 
 :formatAndAssign
 echo ============================================================
-echo           Assigning drive letter for
-echo                  bootloader...
+echo           Formatting and assigning drive letter to bootloader
 echo ============================================================
-echo.
+echo(
 
-:: List all volumes and find the FAT32 volume with label containing ESP
-set foundESP=false
-for /f "tokens=2,3,4 delims= " %%A in ('echo list volume ^| diskpart ^| findstr /I "FAT32" ^| findstr /I "ESP"') do (
-    set VolumeNumber=%%A
-    set foundESP=true
-    goto :volFound
+for /f "tokens=2 delims= " %%f in ('echo list volume ^| diskpart ^| findstr /i "FAT32" ^| findstr /i "PE"') do (
+	set volumeNumber=%%f
+	goto volFound
 )
 
-:: If no FAT32 ESP volume found, search for PE
-if not !foundESP! == true (
-    echo No FAT32 ESP volume found. Searching for PE...
-    for /f "tokens=2,3,4 delims= " %%B in ('echo list volume ^| diskpart ^| findstr /I "FAT32" ^| findstr /I "PE"') do (
-        set VolumeNumber=%%B
-        goto :volFound
-    )
+echo No FAT32 PE volume found. Searching for %ESP_PART_NAME%...
+for /f "tokens=2 delims= " %%f in ('echo list volume ^| diskpart ^| findstr /i "FAT32" ^| findstr /i "%ESP_PART_NAME%"') do (
+    set volumeNumber=%%f
+    goto volFound
 )
 
-if not defined VolumeNumber (
-    echo No FAT32 ESP or PE volume found.
-    echo Take picture of error, force Reboot and ask for help.
-    call %flashboot%
-    pause
-    exit /b 1
-)
+echo No FAT32 ESP or PE volume found. & goto fail
 
 :volFound
-echo Found FAT32 volume with ESP or PE, Volume Number %VolumeNumber%
+echo Found FAT32 volume with ESP or PE, Volume Number %volumeNumber%
 
-:: Format the volume, assign the drive letter S, and label it with value of ESP_PART_NAME in conf file
+rem Format the volume, assign the drive letter S, and label it accordingly
 (
-    echo select volume %VolumeNumber%
+    echo select volume %volumeNumber%
     echo format fs=fat32 quick label=%ESP_PART_NAME%
     echo assign letter=S
 ) | diskpart
 
-echo.
+echo(
 echo ============================================================
-echo         Volume No. %VolumeNumber% has been formatted with FAT32,
-echo           Assigned letter S, and labeled %ESP_PART_NAME%.
+echo           Creating bootloader files...
 echo ============================================================
-echo.
-echo.
-echo ============================================================
-echo           Creating bootloader file...
-echo ============================================================
-echo.
-bcdboot %targetDrive%\windows /s S: /f UEFI
-echo.
-echo ============================================================
-echo           Windows installation process
-echo                    completed!
-echo ============================================================
-echo.
-echo.
-echo ============================================================
+echo(
+
+call :addbootentry %~d0 || goto fail
+
+echo(
+echo ==========================================================
 echo           Now performing driver installation...
-echo ============================================================
+echo ==========================================================
 
-:: Searching for an XML file in the target directory and renaming it to sog.xml
-set xmlFound=false
-for %%F in (%targetDrive%\installer\Driver\definitions\Desktop\ARM64\Internal\*.xml) do (
-    ren "%%F" sog.xml
-    set xmlFound=true
-    goto :fileFound
+rem Searching for an XML file in the target directory
+set "repo=%~dp0Driver"
+for %%f in ("%repo%\definitions\Desktop\ARM64\Internal\*.xml") do (
+    set "xmlFile=%%f"
+    goto xmlFound
 )
 
-if "!xmlFound!"=="false" (
-    echo No XML files found in %targetDrive%\installer\Driver\definitions\Desktop\ARM64\Internal\.
-    %flashboot%
-    pause
-    exit /b 1
+echo No XML files found in %repo%\definitions\Desktop\ARM64\Internal\. & goto fail
+
+:xmlFound
+echo XML file found at %xmlFile%.
+
+"%repo%\tools\DriverUpdater\%PROCESSOR_ARCHITECTURE%\DriverUpdater.exe" -r "%repo%\." -d "%xmlFile%" -p %~d0 || echo Failed to install the drivers. && goto fail
+
+echo(
+echo ==========================================================
+echo Installation completed. Rebooting into Windows in 5 seconds.
+echo ==========================================================
+"%~dp0sta" -p "%~dp0uefi.img" -n || echo Failed to flash the UEFI image. && goto fail
+
+echo(
+echo ==========================================================
+echo           Cleaning installation files........
+echo ==========================================================
+rmdir /s /q "%~dp0" & shutdown /r /t 5
+exit /b
+
+:fail
+echo Take a picture of the error, force reboot and ask for help on Telegram @wininstaller or @woahelperchat
+pause
+exit /b 1
+:addbootentry
+bcdboot %~1\Windows /s S: /f UEFI || exit /b 1
+if not "%SECURE_BOOT%"=="TRUE" (
+	bcdedit /store S:\EFI\Microsoft\BOOT\BCD /set {default} testsigning on || exit /b 1
+	bcdedit /store S:\EFI\Microsoft\BOOT\BCD /set {default} nointegritychecks on || exit /b 1
+	rem bcdedit /store S:\EFI\Microsoft\BOOT\BCD /set {default} recoveryenabled no || exit /b 1
 )
-
-:fileFound
-echo XML file found and renamed to sog.xml.
-
-:continue
-call "X:\DriverInstaller\DriverInstaller.lnk"
-echo.
-echo ============================================================
-echo Installation Completed. Rebooting in Windows in 5 seconds.
-echo This script is written by Kumar-Jy, telegram : @kumar_jy
-echo ============================================================
-shutdown /r /t 5
-echo.
-echo ============================================================
-echo           Cleaning Installation File........
-echo ============================================================
-cd %targetDrive%
-rmdir /s /q "%targetDrive%\installer"
+exit /b
+:indexlookup
+for /f "tokens=2 delims=: " %%a in ('dism /Get-WimInfo /WimFile:%imageFile% ^| findstr /i /c:"Index :"') do (
+    set currentIndex=%%a
+    for /f "delims=" %%b in ('dism /Get-WimInfo /WimFile:%imageFile% /Index:%%a ^| findstr /i /c:"Name : %~1"') do (
+        set index=%%a
+		echo Index value %%a found for %~1
+        exit /b
+    )
+)
+echo %~1 not found in the image file.
+exit /b 1
