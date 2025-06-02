@@ -12,6 +12,16 @@ IMG_BACKUP_FOLDER="$UPD_TEMP_FOLDER/backup"
 WIN_MOUNT_FOLDER="$UPD_TEMP_FOLDER/win"
 CONFIG_FILE="$UPD_TEMP_FOLDER/wininstaller.conf"
 PE_INSTALLER="$WIN_MOUNT_FOLDER/installer/install.bat"
+#
+BASE_PATH="/dev/block/by-name"  # Base path for named partition symlinks
+WIN_PATH="$BASE_PATH/win"  # Path to the Windows partition block
+ESP_PATH="$BASE_PATH/esp"  # Path to the EFI System Partition (ESP) block
+CURRENT_BATTERY=$(cat /sys/class/power_supply/battery/capacity)  # Read current battery percentage
+PARTITION_BACKUP="boot dtbo vendor_boot fsc fsg modemst1 modemst2 persist"  # Partitions to back up, automatically handles A/B and non-A/B devices
+CHAR_WIDTH=49  # Maximum no. of characters per line for formatted output, char exceeding this will wrap automatically to next line
+SELECTION_TIMEOUT=15  # Timeout (in seconds) before auto-selecting the default option in the volume button menu
+BANNER_EXIT="*---------------------Error!----------------------*"  # Banner to display on exit/abort
+#
 set -o pipefail
 
 ui_print() {
