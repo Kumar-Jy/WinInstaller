@@ -346,7 +346,19 @@ verify_battery() {
 is_windows_installed() {
   setup_wimlib
   umount "$WIN_PATH"
-  mount.ntfs "$WIN_PATH" "$WIN_MOUNT_FOLDER" || { abort "Failed to mount $WIN_PATH"; }
+
+  # capture mount output
+  MOUNT_LOG=$(mount.ntfs "$WIN_PATH" "$WIN_MOUNT_FOLDER" 2>&1)
+
+  # check for unclean NTFS mount (hibernated/Fast Startup) warning 
+  echo "$MOUNT_LOG" | grep -q "unclean file system"
+  if [ $? -eq 0 ]; then
+    print_exit
+    print_centered "NTFS is in an unsafe state! boot to Windows and"
+    nl_print_centered "Please disable Fast Startup and shutdown Windows properly."
+    return 1
+  fi
+
   if [ -f "$WIN_MOUNT_FOLDER/Windows/explorer.exe" ]; then
     return 0
   else
