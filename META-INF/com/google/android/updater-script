@@ -22,6 +22,11 @@ print_centered "Help and suggestions by: Sog, Andre_grams"
 print_centered "Drivers & UEFI: $MAINTAINER"
 print_line =
 verify_device
+aio_progress 0.5 10   # start progress from 0% to 50% in 10 seconds
+print_centered "Verifying files integrity and checks"
+file_checksum
+print_centered "files Verifications Done"
+print_line
 print_centered "Verifying required Partitions"
 verify_part
 print_line # Prints a banner line using CHAR_WIDTH length of '-' (or custom character), wrapped with '*' on both ends
@@ -33,6 +38,7 @@ else
 fi
 print_line
 print_centered "Fixing GPT"
+aio_progress 0.5 0    # instantly moves progress back to 50% (for reset or rewind)
 aio_progress 0.5 10   # start progress from 0% to 50% in 10 seconds
 run_gptfix
 print_line
