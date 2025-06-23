@@ -433,6 +433,49 @@ setup_wimlib() {
   chmod 0777 "$UPD_TEMP_FOLDER/wimlib-imagex"
 }
 
+file_checksum() {
+local i=0
+while [ $i -lt ${#HASH_PAIRS[@]} ]; do
+  file="${HASH_PAIRS[$i]}"
+  hash="${HASH_PAIRS[$((i + 1))]}"
+  check_file_and_hash "$file" "$hash"
+  i=$((i + 2))
+done
+}
+
+check_file_and_hash() {
+    local file_path="$1"
+    local expected_hash="$2"
+
+    if ! unzip -l "$UPD_ZIP" | grep -q " $file_path$"; then
+	    print_exit
+        print_centered " File: $file_path not found in package!"
+        print_line -
+        print_centered "Your download zip might be corrupted." 
+        print_centered "Please download again and retry."
+        nl_print_centered "if Still same, Post a screenshot in the group."
+        exit 1
+    fi
+    local actual_hash
+    actual_hash=$(unzip -p "$UPD_ZIP" "$file_path" | sha1sum | awk '{print $1}')
+    if [ "$actual_hash" != "$expected_hash" ]; then
+	print_exit
+        print_centered "SHA-1 mismatch for $file_path!"
+        print_line -
+        print_centered "Expected SHA-1 hash:"
+        print_centered "$expected_hash"
+        print_centered "current file Got:"
+        print_centered "$actual_hash"
+        print_line -
+        ln_print_centered "Your download zip might be corrupted." 
+        print_centered "Please download again and retry."
+        nl_print_centered "if Still same, Post a screenshot in the group."
+        exit 1
+    fi
+    #ui_print "SHA-1 verification passed for $file_path"
+	#ui_print " "
+}
+
 rm -rf "$UPD_TEMP_FOLDER"
 mkdir -p "$UPD_TEMP_FOLDER"
 mkdir -p "$IMG_BACKUP_FOLDER"
