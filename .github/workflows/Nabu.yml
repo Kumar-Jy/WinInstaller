@@ -1,0 +1,77 @@
+name: Build Installer ZIP
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag for naming the ZIP (e.g. nabu-wininstaller)'
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Create temp and target directories
+        run: |
+          mkdir -p driver-temp
+          mkdir -p checksum-temp
+          mkdir -p installer/Driver
+
+      - name: Download drivers ZIP
+        run: |
+          curl -L \
+            https://github.com/erdilS/Port-Windows-11-Xiaomi-Pad-5/releases/download/Drivers/nabu-drivers-v2501.27.zip \
+            -o nabu-drivers.zip
+
+      - name: Extract all drivers to temp folder
+        run: unzip nabu-drivers.zip -d driver-temp
+
+      - name: Copy selected directories into installer/Driver
+        run: |
+          for dir in components definitions tools apps; do
+            find driver-temp -type d -name "$dir" -print0 \
+              | while IFS= read -r -d '' match; do
+                  echo "Copying: $match"
+                  cp -r "$match" installer/Driver/
+              done
+          done
+
+      - name: Download uefi.img
+        run: |
+          curl -L \
+            https://github.com/erdilS/Port-Windows-11-Xiaomi-Pad-5/releases/download/UEFI/nabu-uefi-v4.img \
+            -o installer/uefi.img
+
+      - name: Download pe.img
+        run: |
+          curl -L \
+            https://github.com/Kumar-Jy/WinInstaller/releases/download/WinPE/pe.img \
+            -o installer/pe.img
+
+      - name: Generate SHA-256 checksums in temp
+        run: |
+          find installer -type f -print0 \
+            | xargs -0 sha256sum \
+            > checksum-temp/sha256sum
+
+      - name: Copy checksum file into installer
+        run: cp checksum-temp/sha256sum installer/sha256sum
+
+      - name: Cleanup temp folders
+        run: |
+          rm -rf driver-temp checksum-temp nabu-drivers.zip
+
+      - name: Archive full repository into ZIP
+        run: |
+          ZIP_NAME="installer-${{ github.event.inputs.tag }}.zip"
+           zip -r "$ZIP_NAME" installer ToolBox META-INF wininstaller.conf
+
+      - name: Upload ZIP as clean artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer-${{ github.event.inputs.tag }}
+          path: installer-${{ github.event.inputs.tag }}.zip
