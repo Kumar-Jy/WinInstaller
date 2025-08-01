@@ -116,7 +116,8 @@ aio_progress 0.95 50  # moves progress from 50% to 95% in 50 seconds
 print_line
 print_centered "Extracting installation files";
 package_extract_folder "installer" "$WIN_MOUNT_FOLDER"
-for var in ESP_PART_NAME DEVICE_NAME WI_VERSION BUID_DATE SECURE_BOOT MAINTAINER; do
+ESP_PART_NO=$(realpath "$BASE_PATH/esp" | awk -F'sda' '{print $2}')
+for var in ESP_PART_NAME ESP_PART_NO DEVICE_NAME WI_VERSION BUID_DATE SECURE_BOOT MAINTAINER; do
   eval value=\$$var
   sed -i "s|^set $var=.*|set $var=$value|" "$PE_INSTALLER"
 done
