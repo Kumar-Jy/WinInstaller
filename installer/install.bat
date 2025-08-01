@@ -19,6 +19,7 @@ echo Copyright (C) 2025-26 https://github.com/Kumar-jy, https://github.com/ArKT-
 mode 800
 :: wininstaller.conf variables
 set ESP_PART_NAME=
+set ESP_PART_NO=
 set WI_VERSION=
 set BUILD_DATE=
 set DEVICE_NAME=
@@ -59,25 +60,10 @@ echo           Formatting and assigning drive letter to bootloader
 echo ============================================================
 echo(
 
-for /f "tokens=2 delims= " %%f in ('echo list volume ^| diskpart ^| findstr /i "FAT32" ^| findstr /i "PE"') do (
-	set volumeNumber=%%f
-	goto volFound
-)
-
-echo No FAT32 PE volume found. Searching for %ESP_PART_NAME%...
-for /f "tokens=2 delims= " %%f in ('echo list volume ^| diskpart ^| findstr /i "FAT32" ^| findstr /i "%ESP_PART_NAME%"') do (
-    set volumeNumber=%%f
-    goto volFound
-)
-
-echo No FAT32 ESP or PE volume found. & goto fail
-
-:volFound
-echo Found FAT32 volume with ESP or PE, Volume Number %volumeNumber%
-
 rem Format the volume, assign the drive letter S, and label it accordingly
 (
-    echo select volume %volumeNumber%
+    echo select volume %~d0
+    echo select partition %ESP_PART_NO%
     echo format fs=fat32 quick label=%ESP_PART_NAME%
     echo assign letter=S
 ) | diskpart
