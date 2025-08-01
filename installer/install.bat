@@ -20,7 +20,7 @@ mode 800
 :: wininstaller.conf variables
 set ESP_PART_NAME=
 set WI_VERSION=
-set BUID_DATE=
+set BUILD_DATE=
 set DEVICE_NAME=
 set SECURE_BOOT=
 set MAINTAINER=
@@ -28,7 +28,7 @@ echo(
 echo ============================================================
 echo        Welcome to Windows Installation in %DEVICE_NAME%    
 echo              Version: %WI_VERSION%              
-echo              Date   : %BUID_DATE%                           
+echo              Date   : %BUILD_DATE%                           
 echo              Made by: Kumar_Jy, ArKT                             
 echo          Help and suggestions: Sog, Andre_grams.        
 echo    Drivers And UEFI: %MAINTAINER%
@@ -49,7 +49,7 @@ if exist "%~d0\Windows\explorer.exe" (
     echo Windows is already installed.
     goto formatAndAssign
 ) else (
-    echo windows not installed
+    echo Windows not installed
     goto fail
 )
 
