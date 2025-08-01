@@ -172,8 +172,8 @@ navigate_menu() {
   count=${#options[@]}
   selection=0
   print_line
-  print_centered "Use Volume down to selcect/change the options,"
-  print_centered "Use Volume up to select and confirm"
+  print_centered "Use volume down to selcect/change the options,"
+  print_centered "Use volume up to select and confirm"
   print_line
   while true; do
     ui_print " "
@@ -205,10 +205,10 @@ volumekey_timeout() {
   kill -0 $pid 2>/dev/null && kill $pid 2>/dev/null
   grep VOLUME "$UPD_TEMP_FOLDER/raw_events" | grep " DOWN" > "$UPD_TEMP_FOLDER/events"
   if grep -q "VOLUMEUP" "$UPD_TEMP_FOLDER/events"; then
-    echo "Volume Up detected" >> "$UPD_TEMP_FOLDER/debug.log"
+    echo "Volume up detected" >> "$UPD_TEMP_FOLDER/debug.log"
     return 1
   elif grep -q "VOLUMEDOWN" "$UPD_TEMP_FOLDER/events"; then
-    echo "Volume Down detected" >> "$UPD_TEMP_FOLDER/debug.log"
+    echo "Volume down detected" >> "$UPD_TEMP_FOLDER/debug.log"
     return 0
   fi
   echo "No key detected" >> "$UPD_TEMP_FOLDER/debug.log"
@@ -224,8 +224,8 @@ navigate_menu_timeout() {
   last_selection=-1
   last_countdown=-1
   print_line
-  print_centered "Use Volume down to select/change options"
-  print_centered "Use Volume up to confirm"
+  print_centered "Use volume down to select/change options"
+  print_centered "Use volume up to confirm"
   print_centered "Auto-confirm in $timeout_duration seconds..."
   print_line
   ui_print " "
@@ -285,7 +285,7 @@ verify_device() {
   current="$(getprop ro.product.device)"
   if [ "$current" != "$DEVICE_CODE" ]; then
     print_exit
-    print_centered "This script is only for $DEVICE_CODE devices."
+    print_centered "This script is only for $DEVICE_CODE "
     nl_print_centered "Your device is: $current"
     exit 1
   fi
@@ -296,7 +296,7 @@ round() { awk "BEGIN {print int($1 + 0.5)}"; }
 verify_part() {
   UD_PATH="$BASE_PATH/userdata" # Userdata partition block name (same for all devices)
   if [ ! -e "$WIN_PATH" ] || [ ! -e "$ESP_PATH" ]; then
-    abort "Required partition ($WIN_PATH and/or $ESP_PATH) do not exist."
+    abort "Required partition(s) ($WIN_PATH and/or $ESP_PATH) do not exist."
   fi
   local UD_GB=$(awk "BEGIN {print $(blockdev --getsize64 "$UD_PATH") / 1e9}")
   local WIN_GB=$(awk "BEGIN {print $(blockdev --getsize64 "$WIN_PATH") / 1e9}")
@@ -308,7 +308,7 @@ verify_part() {
   print_centered "ESP Size: ${ESP_R}MB"
   print_centered "Windows Size: ${WIN_R}GB"
   if [ "$WIN_R" -ge "$WIN_MIN_SIZE" ] && [ "$ESP_R" -ge "$ESP_MIN_SIZE" ]; then
-    print_centered "Partition verifyied & meets requirements"
+    print_centered "Partitions verified & meets requirements"
   else
     #ui_print "*----------------------Note!---------------------*"
     print_exit
@@ -446,9 +446,9 @@ check_file_and_hash() {
 	    print_exit
         print_centered " File: $file_path not found in package!"
         print_line -
-        print_centered "Your download zip might be corrupted." 
+        print_centered "Your WinInstaller zip might be corrupt." 
         print_centered "Please download again and retry."
-        nl_print_centered "if Still same, Post a screenshot in the group."
+        nl_print_centered "if the error remains, post a screenshot in the Telegram group."
         exit 1
     fi
     local actual_hash
@@ -462,9 +462,9 @@ check_file_and_hash() {
         print_centered "current file Got:"
         print_centered "$actual_hash"
         print_line -
-        ln_print_centered "Your download zip might be corrupted." 
+        ln_print_centered "Your WinInstaller zip might be corrupt." 
         print_centered "Please download again and retry."
-        nl_print_centered "if Still same, Post a screenshot in the group."
+        nl_print_centered "if the error remains, post a screenshot in the Telegram group."
         exit 1
     fi
     #ui_print "SHA-1 verification passed for $file_path"
@@ -478,9 +478,9 @@ mkdir -p "$WIN_MOUNT_FOLDER"
 
 package_extract_file "wininstaller.conf" "$CONFIG_FILE" || {
     ui_print " "
-    ui_print " Error: Wininstaller Configuration file not found or empty"
+    ui_print " Error: Wininstaller configuration file not found or empty"
     ui_print " " 
-    ui_print " Make sure you have a file (wininstaller.conf) in main directory with all configration"
+    ui_print " Make sure you have the file (wininstaller.conf) in main directory with all configrations"
     ui_print " " 
     exit 1
 }
