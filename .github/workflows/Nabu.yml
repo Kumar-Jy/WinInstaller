@@ -88,6 +88,11 @@ jobs:
           curl -L https://github.com/asheroto/Deploy-Office/releases/latest/download/Deploy-Office.exe \
           -o ToolBox/Deploy-Office.exe
 
+      - name: Download Woa-Helper
+        run: |
+          curl -L https://github.com/n00b69/woa-helper/releases/download/APK/BETAwoahelper1.8.4.41.apk \
+          -o woahelper.apk
+      
       - name: Generate SHA-256 checksums in temp
         run: |
           find installer -type f -print0 | xargs -0 sha256sum > checksum-temp/sha256sum
@@ -109,3 +114,4 @@ jobs:
             ToolBox
             META-INF
             wininstaller.conf
+            woahelper.apk
