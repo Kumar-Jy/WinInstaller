@@ -1,0 +1,104 @@
+name: Build Installer ZIP
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag for naming the ZIP (e.g. vayu-wininstaller)'
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install 7zip
+        run: sudo apt-get update && sudo apt-get install -y p7zip-full
+
+      - name: Create temp and target directories
+        run: |
+          mkdir -p driver-temp
+          mkdir -p checksum-temp
+          mkdir -p installer/Driver
+          mkdir -p ToolBox
+
+      - name: Define driver and UEFI URLs
+        run: |
+          echo "DRIVER_URL=https://github.com/WaLoVayu/POCOX3Pro-Windows-Releases/releases/download/2502.28/POCOX3Pro-Drivers-v2502.28-Desktop.7z" >> $GITHUB_ENV
+          echo "UEFI_URL=https://github.com/WaLoVayu/POCOX3Pro-Windows-Releases/releases/download/2502.28/POCO.X3.Pro.UEFI-v2502.28.img" >> $GITHUB_ENV
+
+      - name: Generate wininstaller.conf
+        run: |
+          cat << 'EOF' > wininstaller.conf
+          # ================================ Configurations ================================
+          DEVICE_CODE="vayu"
+          WIN_MIN_SIZE=30
+          ESP_MIN_SIZE=349
+          REQUIRED_BATTERY=50
+          WIN_PART_NAME="WINVAYU"
+          ESP_PART_NAME="ESPVAYU"
+          SECURE_BOOT="TRUE"
+          WINDOWS_EDITIONS=(
+            "Windows 11 Pro"
+            "Windows 11 IoT Enterprise LTSC"
+            "Windows 11 Enterprise LTSC"
+            "Windows 11 Enterprise"
+            "Windows 11 Home"
+            "Windows 10 Pro"
+            "Windows 10 Home"
+          )
+          DEVICE_NAME="POCO X3 PRO"
+          WI_VERSION="WinInstaller_VAYU_R8.3.2"
+          BUILD_DATE="31-July-2025"
+          MAINTAINER="Project-Aloha, remtrik And idk"
+          # ============================== Configurations End ==============================
+          EOF
+
+      - name: Download drivers archive
+        run: curl -L "$DRIVER_URL" -o driver.7z
+
+      - name: Extract all drivers to temp folder
+        run: 7z x driver.7z -odriver-temp
+
+      - name: Copy selected directories into installer/Driver
+        run: |
+          for dir in components definitions tools apps; do
+            find driver-temp -type d -name "$dir" -print0 |
+              while IFS= read -r -d '' match; do
+                echo "Copying: $match"
+                cp -r "$match" installer/Driver/
+              done
+          done
+
+      - name: Download uefi.img
+        run: curl -L "$UEFI_URL" -o installer/uefi.img
+
+      - name: Download pe.img
+        run: |
+          curl -L https://github.com/Kumar-Jy/WinInstaller/releases/download/WinPE/pe.img \
+          -o installer/pe.img
+
+      - name: Generate SHA-256 checksums in temp
+        run: |
+          find installer -type f -print0 | xargs -0 sha256sum > checksum-temp/sha256sum
+
+      - name: Copy checksum file into installer
+        run: cp checksum-temp/sha256sum installer/sha256sum
+
+      - name: Cleanup temp folders
+        continue-on-error: true
+        run: |
+          rm -rf driver-temp checksum-temp drivers.7z
+
+      - name: Upload installer artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer-artifacts
+          path: |
+            installer
+            ToolBox
+            META-INF
+            wininstaller.conf
