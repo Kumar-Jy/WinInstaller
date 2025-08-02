@@ -15,63 +15,90 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Install 7zip
+        run: sudo apt-get update && sudo apt-get install -y p7zip-full
+
       - name: Create temp and target directories
         run: |
           mkdir -p driver-temp
           mkdir -p checksum-temp
           mkdir -p installer/Driver
+          mkdir -p ToolBox
 
-      - name: Download drivers ZIP
+      - name: Define driver and UEFI URLs
         run: |
-          curl -L \
-            https://github.com/erdilS/Port-Windows-11-Xiaomi-Pad-5/releases/download/Drivers/nabu-drivers-v2501.27.zip \
-            -o nabu-drivers.zip
+          echo "DRIVER_URL=https://github.com/erdilS/Port-Windows-11-Xiaomi-Pad-5/releases/download/Drivers/nabu-drivers-v2501.27.zip" >> $GITHUB_ENV
+          echo "UEFI_URL=https://github.com/erdilS/Port-Windows-11-Xiaomi-Pad-5/releases/download/UEFI/nabu-uefi-v4.img" >> $GITHUB_ENV
+
+      - name: Generate wininstaller.conf
+        run: |
+          cat << 'EOF' > wininstaller.conf
+          # ================================ Configurations ================================
+          DEVICE_CODE="nabu"
+          WIN_MIN_SIZE=30
+          ESP_MIN_SIZE=349
+          REQUIRED_BATTERY=50
+          WIN_PART_NAME="WINNABU"
+          ESP_PART_NAME="ESPNABU"
+          SECURE_BOOT="TRUE"
+          WINDOWS_EDITIONS=(
+            "Windows 11 Pro"
+            "Windows 11 IoT Enterprise LTSC"
+            "Windows 11 Enterprise LTSC"
+            "Windows 11 Enterprise"
+            "Windows 11 Home"
+            "Windows 10 Pro"
+            "Windows 10 Home"
+          )
+          DEVICE_NAME="Xiaomi Pad 5"
+          WI_VERSION="WinInstaller_NABU_R8.3.2"
+          BUILD_DATE="02-Aug-2025"
+          MAINTAINER="Project-Aloha,map220v,remtrik And idk"
+          # ============================== Configurations End ==============================
+          EOF
+
+      - name: Download drivers archive
+        run: curl -L "$DRIVER_URL" -o driver.7z
 
       - name: Extract all drivers to temp folder
-        run: unzip nabu-drivers.zip -d driver-temp
+        run: 7z x driver.7z -odriver-temp
 
       - name: Copy selected directories into installer/Driver
         run: |
           for dir in components definitions tools apps; do
-            find driver-temp -type d -name "$dir" -print0 \
-              | while IFS= read -r -d '' match; do
-                  echo "Copying: $match"
-                  cp -r "$match" installer/Driver/
+            find driver-temp -type d -name "$dir" -print0 |
+              while IFS= read -r -d '' match; do
+                echo "Copying: $match"
+                cp -r "$match" installer/Driver/
               done
           done
 
       - name: Download uefi.img
-        run: |
-          curl -L \
-            https://github.com/erdilS/Port-Windows-11-Xiaomi-Pad-5/releases/download/UEFI/nabu-uefi-v4.img \
-            -o installer/uefi.img
+        run: curl -L "$UEFI_URL" -o installer/uefi.img
 
       - name: Download pe.img
         run: |
-          curl -L \
-            https://github.com/Kumar-Jy/WinInstaller/releases/download/WinPE/pe.img \
-            -o installer/pe.img
+          curl -L https://github.com/Kumar-Jy/WinInstaller/releases/download/WinPE/pe.img \
+          -o installer/pe.img
 
       - name: Generate SHA-256 checksums in temp
         run: |
-          find installer -type f -print0 \
-            | xargs -0 sha256sum \
-            > checksum-temp/sha256sum
+          find installer -type f -print0 | xargs -0 sha256sum > checksum-temp/sha256sum
 
       - name: Copy checksum file into installer
         run: cp checksum-temp/sha256sum installer/sha256sum
 
       - name: Cleanup temp folders
+        continue-on-error: true
         run: |
-          rm -rf driver-temp checksum-temp nabu-drivers.zip
+          rm -rf driver-temp checksum-temp drivers.7z
 
-      - name: Archive full repository into ZIP
-        run: |
-          ZIP_NAME="installer-${{ github.event.inputs.tag }}.zip"
-           zip -r "$ZIP_NAME" installer ToolBox META-INF wininstaller.conf
-
-      - name: Upload ZIP as clean artifact
+      - name: Upload installer artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: installer-${{ github.event.inputs.tag }}
-          path: installer-${{ github.event.inputs.tag }}.zip
+          name: installer-artifacts
+          path: |
+            installer
+            ToolBox
+            META-INF
+            wininstaller.conf
