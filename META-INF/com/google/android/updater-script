@@ -14,9 +14,9 @@ source "$CONFIG_FILE"
 #       along with a timeout mechanism for user selections
 
 print_line = # Prints a banner line using CHAR_WIDTH length of '-' (or custom character), wrapped with '*' on both ends
-print_centered "Welcome to Windows Installation on $DEVICE_NAME"
+print_centered "Welcome to WinInstaller for $DEVICE_NAME"
 print_centered "Version: $WI_VERSION"
-print_centered "Build Date: $BUID_DATE"
+print_centered ""Build date: $BUILD_DATE"
 print_centered "Made by: Kumar_Jy & ArKT"
 print_centered "Help and suggestions by: Sog, Andre_grams"
 print_centered "Drivers & UEFI: $MAINTAINER"
@@ -25,11 +25,11 @@ verify_device
 print_centered "Verifying required Partitions"
 verify_part
 print_line # Prints a banner line using CHAR_WIDTH length of '-' (or custom character), wrapped with '*' on both ends
-print_centered "Checking Battery Status"
+print_centered "Checking battery status"
 if verify_battery; then
 print_centered "Battery percentage is sufficient: $CURRENT_BATTERY%"
 else
-   abort "Battery is only $CURRENT_BATTERY% Charged, Charge it at list $REQUIRED_BATTERY% ..."
+   abort "Battery is below $REQUIRED_BATTERY%, exiting ..."
 fi
 print_line
 print_centered "Fixing GPT"
@@ -45,18 +45,18 @@ if is_windows_installed; then
 print_centered "Windows is already installed"
 print_line
 aio_progress 0.5 0    # instantly moves progress back to 50% (for reset or rewind)
-winask=("Option 1: Driver Update/install only" "Option 2: Windows re-install (with format)")
+winask=("Option 1: Driver update/install only" "Option 2: Windows re-install (with format)")
 navigate_menu_timeout "${winask[@]}"
 case "$selection" in
   0)
     if is_partition_rw; then
     print_line
     print_centered "Skipping format and copy steps"
-    print_centered "and processing for Drivers Installation"
+    print_centered "and processing for driver installation"
     else
     print_exit
-    print_centered "Error: Partition is Read-Only"
-    nl_print_centered "Goto Windows then reboot to Android and try again"
+    print_centered "Error: Partition is read-only"
+    nl_print_centered "Go to Windows then reboot into Android and try again"
     umount "$WIN_PATH"
     exit 1
     fi
@@ -74,14 +74,14 @@ case "$selection" in
 else
 aio_progress 0.5 0    # instantly moves progress back to 5% (for reset or rewind)
 aio_progress 0.9 80   # moves progress from 5% to 90% in 80 seconds
-print_centered "Windows is not already installed"
-print_centered "Proceeding with Windows Installation"
+print_centered "Windows is not yet installed"
+print_centered "Proceeding with Windows installation"
 print_line
 Windows_Installation
 fi
 if ! is_windows_installed; then
 print_exit
-print_centered "$SELECTED_EDITION Fail to install "
+print_centered "$SELECTED_EDITION fail to install "
 print_centered "ESD/WIM file may be corrupted..."
 nl_print_centered "Reboot to Android and check the ESD/WIM file."
 umount "$WIN_PATH"
@@ -92,14 +92,14 @@ fi
 aio_progress 0.5 0    # instantly moves progress back to 50% (for reset or rewind)
 aio_progress 0.95 50  # moves progress from 50% to 95% in 50 seconds
 print_line
-print_centered "Extracting Installation File";
-package_extract_folder "installer" "$WIN_MOUNT_FOLDER" || { abort "Error Extracting Installation File"; }
+print_centered "Extracting installation File";
+package_extract_folder "installer" "$WIN_MOUNT_FOLDER" || { abort "Error extracting installation file"; }
 print_line
 print_centered "Verifying Checksum for Installer"
 (cd $WIN_MOUNT_FOLDER/installer && sha256sum -c sha256sum) || { abort "Checksum verification failed, zip file is croupted, download it again"; }
 print_centered "Checksum verification success"
 print_line
-for var in ESP_PART_NAME ESP_PART_NO DEVICE_NAME WI_VERSION BUID_DATE SECURE_BOOT MAINTAINER; do
+for var in ESP_PART_NAME ESP_PART_NO DEVICE_NAME WI_VERSION BUILD_DATE SECURE_BOOT MAINTAINER; do
   eval value=\$$var
   sed -i "s|^set $var=.*|set $var=$value|" "$PE_INSTALLER"
 done
@@ -116,11 +116,11 @@ dd if="$WIN_MOUNT_FOLDER/installer/uefi.img" of="$BASE_PATH/boot$(getprop ro.boo
 umount "$WIN_PATH" "$ESP_PATH"
 sleep 1
 print_line =
-print_centered "Flashing Completed, Now reboot to system"
+print_centered "Flashing completed, Now reboot to system"
 print_centered "Installation will start automatically"
 print_line =
 print_centered "If it fails, Don't Flash it again"
-print_centered "ask for help on Telegram: @wininstaller"
+print_centered "Ask for help on Telegram: @wininstaller"
 print_centered "Thanks to all WOA Developers & Maintainers"
 print_line =
 exitask=("Option 1: Reboot device" "Option 2: Exit")
@@ -128,14 +128,14 @@ navigate_menu_timeout "${exitask[@]}"
 case "$selection" in
   0)
     print_line
-    print_centered "your device will reboot now!"
+    print_centered "Your device will reboot now!"
     print_line
     sleep 1
 	  reboot
     ;;
   1)
     print_line
-    print_centered "WinInstaller nuked done!"
+    print_centered "WinInstaller nuke done!"
     print_line
     exit
     ;;
