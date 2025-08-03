@@ -321,22 +321,9 @@ verify_part() {
 
 run_gptfix() {
   setup_gdisk
-  for i in a b c d e f g h i j k l m n o p q r s t u v w x y z; do
-    DEVICE="/dev/block/sd$i"
-    if [ -e "$DEVICE" ]; then
-      echo "Fixing GPT on $DEVICE" # echo Prints in /tmp/recovery.log
-      "$UPD_TEMP_FOLDER/gdisk" "$DEVICE" <<EOF
-x
-j
-
-k
-
-w
-Y
-EOF
-    else
-      echo "Device $DEVICE not found, skipping."  # echo Prints in /tmp/recovery.log
-    fi
+  for d in /dev/block/sd?; do
+    [ -b "$d" ] && echo "Fixing GPT on $d" &&
+    "$UPD_TEMP_FOLDER/gdisk" "$d" <<< $'x\nj\n\nk\n\nw\nY'
   done
 }
 
@@ -417,6 +404,20 @@ format_win() {
   mkfs.ntfs -f "$WIN_PATH" -L "$WIN_PART_NAME"
 }
 
+Windows_Installation() {
+print_centered "Proceeding with formatting and installation"
+    print_line
+    print_centered "Searching for Windows Image"
+    win_esd_search
+    print_line
+    print_centered "Verifying Windows Edition"
+    find_index
+    print_line
+    print_centered "Installing $SELECTED_EDITION...."
+    format_win
+    "$UPD_TEMP_FOLDER/wimlib-imagex" apply "$WIN_IMAGE" "$SELECTED_INDEX" "$WIN_PATH"
+}
+
 # might be better to combine both functions into one (e.g., setup_bin)
 # Could improve structure, but then slightly delay initial when ui_print during flashing zip
 setup_gdisk() {
@@ -429,49 +430,6 @@ setup_wimlib() {
   chmod 0777 "$UPD_TEMP_FOLDER/wimlib-imagex"
 }
 
-file_checksum() {
-local i=0
-while [ $i -lt ${#HASH_PAIRS[@]} ]; do
-  file="${HASH_PAIRS[$i]}"
-  hash="${HASH_PAIRS[$((i + 1))]}"
-  check_file_and_hash "$file" "$hash"
-  i=$((i + 2))
-done
-}
-
-check_file_and_hash() {
-    local file_path="$1"
-    local expected_hash="$2"
-
-    if ! unzip -l "$UPD_ZIP" | grep -q " $file_path$"; then
-	    print_exit
-        print_centered " File: $file_path not found in package!"
-        print_line -
-        print_centered "Your WinInstaller zip might be corrupt." 
-        print_centered "Please download again and retry."
-        nl_print_centered "if the error remains, post a screenshot in the Telegram group."
-        exit 1
-    fi
-    local actual_hash
-    actual_hash=$(unzip -p "$UPD_ZIP" "$file_path" | sha1sum | awk '{print $1}')
-    if [ "$actual_hash" != "$expected_hash" ]; then
-	print_exit
-        print_centered "SHA-1 mismatch for $file_path!"
-        print_line -
-        print_centered "Expected SHA-1 hash:"
-        print_centered "$expected_hash"
-        print_centered "current file Got:"
-        print_centered "$actual_hash"
-        print_line -
-        ln_print_centered "Your WinInstaller zip might be corrupt." 
-        print_centered "Please download again and retry."
-        nl_print_centered "if the error remains, post a screenshot in the Telegram group."
-        exit 1
-    fi
-    #ui_print "SHA-1 verification passed for $file_path"
-	#ui_print " "
-}
-
 rm -rf "$UPD_TEMP_FOLDER"
 mkdir -p "$UPD_TEMP_FOLDER"
 mkdir -p "$IMG_BACKUP_FOLDER"
@@ -479,9 +437,9 @@ mkdir -p "$WIN_MOUNT_FOLDER"
 
 package_extract_file "wininstaller.conf" "$CONFIG_FILE" || {
     ui_print " "
-    ui_print " Error: Wininstaller configuration file not found or empty"
+    ui_print " Error: Wininstaller Configuration file not found or empty"
     ui_print " " 
-    ui_print " Make sure you have the file (wininstaller.conf) in main directory with all configrations"
+    ui_print " Make sure you have a file (wininstaller.conf) in main directory with all configration"
     ui_print " " 
     exit 1
 }
