@@ -172,7 +172,7 @@ navigate_menu() {
   count=${#options[@]}
   selection=0
   print_line
-  print_centered "Use volume down to selcect/change the options,"
+  print_centered "Use volume down to select/change the options,"
   print_centered "Use volume up to select and confirm"
   print_line
   while true; do
