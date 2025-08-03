@@ -27,31 +27,31 @@ jobs:
 
       - name: Generate wininstaller.conf
         run: |
-          cat << EOF > wininstaller.conf
-# ================================ Configurations ================================
-DEVICE_CODE="nabu"
-WIN_MIN_SIZE=30
-ESP_MIN_SIZE=349
-REQUIRED_BATTERY=50
-WIN_PART_NAME="WINNABU"
-ESP_PART_NAME="ESPNABU"
-SECURE_BOOT="TRUE"
-WINDOWS_EDITIONS=(
-  "Windows 11 Pro"
-  "Windows 11 IoT Enterprise LTSC"
-  "Windows 11 Enterprise LTSC"
-  "Windows 11 Enterprise"
-  "Windows 11 Home"
-  "Windows 10 Pro"
-  "Windows 10 Home"
-)
-DEVICE_NAME="Xiaomi Pad 5"
-WI_VERSION="WinInstaller_NABU_R8.3.2"
-BUILD_DATE="${{ env.BUILD_DATE }}"
-MAINTAINER="Project-Aloha,map220v,remtrik And idk"
-# ============================== Configurations End ==============================
-EOF
-
+          cat << 'EOF' > wininstaller.conf
+          # ================================ Configurations ================================
+          DEVICE_CODE="nabu"
+          WIN_MIN_SIZE=30
+          ESP_MIN_SIZE=349
+          REQUIRED_BATTERY=50
+          WIN_PART_NAME="WINNABU"
+          ESP_PART_NAME="ESPNABU"
+          SECURE_BOOT="TRUE"
+          WINDOWS_EDITIONS=(
+            "Windows 11 Pro"
+            "Windows 11 IoT Enterprise LTSC"
+            "Windows 11 Enterprise LTSC"
+            "Windows 11 Enterprise"
+            "Windows 11 Home"
+            "Windows 10 Pro"
+            "Windows 10 Home"
+          )
+          DEVICE_NAME="Xiaomi Pad 5"
+          WI_VERSION="WinInstaller_NABU_R8.3.2"
+          BUILD_DATE="02-Aug-2025"
+          MAINTAINER="Project-Aloha,map220v,remtrik And idk"
+          # ============================== Configurations End ==============================
+          EOF
+  
       - name: Create temp and target directories
         run: |
           mkdir -p driver-temp
