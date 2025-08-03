@@ -437,9 +437,9 @@ mkdir -p "$WIN_MOUNT_FOLDER"
 
 package_extract_file "wininstaller.conf" "$CONFIG_FILE" || {
     ui_print " "
-    ui_print " Error: Wininstaller Configuration file not found or empty"
+    ui_print " Error: Wininstaller configuration file not found or empty"
     ui_print " " 
-    ui_print " Make sure you have a file (wininstaller.conf) in main directory with all configration"
+    ui_print " Make sure you have the file (wininstaller.conf) in main directory with all configrations"
     ui_print " " 
     exit 1
 }
