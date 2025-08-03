@@ -65,8 +65,19 @@ jobs:
       - name: Extract all drivers to temp folder
         run: 7z x driver.7z -odriver-temp
 
-      - name: Copy all extracted drivers into installer/Driver
-        run: cp -r driver-temp/* installer/Driver/
+      - name: Copy selected directories into installer/Driver
+        run: |
+          for dir in components definitions tools apps; do
+            find driver-temp -type d -name "$dir" -print0 |
+              while IFS= read -r -d '' match; do
+                echo "Copying: $match"
+                cp -r "$match" installer/Driver/
+              done
+          done
+          rm -rf installer/Driver/tools/DriverUpdater/X86 installer/Driver/tools/DriverUpdater/AMD64
+
+      - name: 
+        run: |
 
       - name: Download uefi.img
         run: curl -L "$UEFI_URL" -o installer/uefi.img
