@@ -108,7 +108,7 @@ jobs:
       - name: Upload installer artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: installer-artifacts
+          name: nabu-wininstaller
           path: |
             installer
             ToolBox
