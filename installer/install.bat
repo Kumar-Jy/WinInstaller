@@ -12,10 +12,8 @@ if "%1" neq "nofont" (
 )
 
 setlocal enabledelayedexpansion
-echo Copyright (C) 2025-26 https://github.com/Kumar-jy, https://github.com/ArKT-7
 :: Set console max char to 99 (as best for 34 font size) so the text can be wrapped to next line
 ::mode con: cols=99
-:: idk but why wraping needed
 mode 800
 :: wininstaller.conf variables
 set ESP_PART_NAME=
@@ -27,12 +25,12 @@ set SECURE_BOOT=
 set MAINTAINER=
 echo(
 echo ============================================================
-echo        Welcome to Windows Installation in %DEVICE_NAME%    
+echo     Welcome to Windows Installation in %DEVICE_NAME%    
 echo              Version: %WI_VERSION%              
 echo              Date   : %BUILD_DATE%                           
-echo              Made by: Kumar_Jy, ArKT                             
-echo          Help and suggestions: Sog, Andre_grams.        
-echo    Drivers And UEFI: %MAINTAINER%
+echo              Made by: Kumar_Jy, ArKT, bibarub                          
+echo     Help and suggestions: Sog, Andre_grams.        
+echo     Drivers And UEFI: %MAINTAINER%
 echo ============================================================
 echo(
 if not exist "%~d0\boot.img" echo Failed to find the boot image. & goto fail
