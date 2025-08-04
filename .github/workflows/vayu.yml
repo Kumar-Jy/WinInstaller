@@ -76,9 +76,6 @@ jobs:
           done
           rm -rf installer/Driver/tools/DriverUpdater/X86 installer/Driver/tools/DriverUpdater/AMD64
 
-      - name: 
-        run: |
-
       - name: Download uefi.img
         run: curl -L "$UEFI_URL" -o installer/uefi.img
 
@@ -96,7 +93,7 @@ jobs:
 
       - name: Download Woa-Helper
         run: |
-          curl -L https://github.com/n00b69/woa-helper/releases/download/APK/BETAwoahelper1.8.4.41.apk \
+          curl -L https://github.com/WaLoVayu/M3K-Helper/releases/download/v3.3/M3K_Helper_v3.3_release.apk \
           -o woahelper.apk
 
       - name: Generate and copy SHA-256 checksums
