@@ -23,7 +23,7 @@ jobs:
         run: |
           BUILD_DATE=$(date '+%d-%b-%Y')
           echo "BUILD_DATE=$BUILD_DATE" >> $GITHUB_ENV
-          echo "ARTIFACT_NAME=nabu-wininstaller-$BUILD_DATE" >> $GITHUB_ENV
+          echo "ARTIFACT_NAME=VAYU-WinInstaller-$BUILD_DATE" >> $GITHUB_ENV
 
       - name: Generate wininstaller.conf
         run: |
