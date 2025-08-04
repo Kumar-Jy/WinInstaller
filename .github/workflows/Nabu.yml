@@ -27,7 +27,7 @@ jobs:
 
       - name: Generate wininstaller.conf
         run: |
-          cat << 'EOF' > wininstaller.conf
+          cat << EOF > wininstaller.conf
           # ================================ Configurations ================================
           DEVICE_CODE="nabu"
           WIN_MIN_SIZE=30
@@ -47,7 +47,7 @@ jobs:
           )
           DEVICE_NAME="Xiaomi Pad 5"
           WI_VERSION="WinInstaller_NABU_R8.3.2"
-          BUILD_DATE="02-Aug-2025"
+          BUILD_DATE="$BUILD_DATE"
           MAINTAINER="Project-Aloha,map220v,remtrik And idk"
           # ============================== Configurations End ==============================
           EOF
@@ -75,9 +75,6 @@ jobs:
               done
           done
           rm -rf installer/Driver/tools/DriverUpdater/X86 installer/Driver/tools/DriverUpdater/AMD64
-
-      - name: 
-        run: |
 
       - name: Download uefi.img
         run: curl -L "$UEFI_URL" -o installer/uefi.img
