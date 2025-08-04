@@ -27,7 +27,7 @@ jobs:
 
       - name: Generate wininstaller.conf
         run: |
-          cat << 'EOF' > wininstaller.conf
+          cat << EOF > wininstaller.conf
           # ================================ Configurations ================================
           DEVICE_CODE="vayu"
           WIN_MIN_SIZE=30
