@@ -219,7 +219,7 @@ volumekey_timeout() {
 navigate_menu_timeout() {
   options=("$@")
   count=${#options[@]}
-  selection=0
+  selection="${selection:-0}"
   start_time=$(date +%s)
   timeout_duration="${SELECTION_TIMEOUT:-10}"
   last_selection=-1
@@ -394,9 +394,50 @@ find_index() {
       return 0
     fi
   done
-  abort "No matching Windows edition found in $WIN_IMAGE"
-# TODO: print the detected Windows edition found in the image
-#       May add volume button input to allow user to select and confirm the edition
+  ui_print " "
+  print_line
+  print_centered "Auto detection FAILED!"
+  print_centered "Please select edition manually:"
+  print_line
+  menu_options=()
+  wim_indexes=()
+  i=0
+  while IFS= read -r line; do
+    case "$line" in
+	  *Index:*)
+	    idx=$(echo "$line" | awk '{print $2}')
+	    waiting_for_name=1
+	    ;;
+	  *Name:*)
+	    if [ "$waiting_for_name" = "1" ]; then
+		  name=$(echo "$line" | sed 's/^Name:[ \t]*//')
+		  num=$((i + 1))
+		  menu_options+=("Option $num: $name")
+		  wim_indexes+=("$idx")
+		  i=$((i + 1))
+		  waiting_for_name=0
+	    fi
+	    ;;
+	  *)
+	    ;;
+    esac
+  done < "$wim_info_path"
+  if [ "${#menu_options[@]}" -eq 0 ]; then
+    abort "No editions found in $WIN_IMAGE"
+  fi
+  cancel_index=$(( ${#menu_options[@]} + 1 ))
+  menu_options+=("Option $cancel_index: Cancel")
+  selection=$((${#menu_options[@]} - 2))
+  navigate_menu_timeout "${menu_options[@]}"
+  selection=$?
+  if [ "$selection" -eq "${#menu_options[@]}" ] || [ "$selection" -eq $((${#menu_options[@]} - 1)) ]; then
+    abort "Error really? you cancelled edition selection"
+  fi
+  SELECTED_INDEX="${wim_indexes[$selection]}"
+  chosen_label="${menu_options[$selection]}"
+  SELECTED_EDITION="${chosen_label#*: }"
+  print_centered "$SELECTED_EDITION found at Index $SELECTED_INDEX"
+  return 0
 }
 
 format_win() {
