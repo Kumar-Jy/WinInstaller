@@ -320,7 +320,6 @@ verify_part() {
 }
 
 run_gptfix() {
-  setup_gdisk
   for d in /dev/block/sd?; do
     [ -b "$d" ] && echo "Fixing GPT on $d" &&
     "$UPD_TEMP_FOLDER/gdisk" "$d" <<< $'x\nj\n\nk\n\nw\nY'
@@ -332,7 +331,6 @@ verify_battery() {
 }
 
 is_windows_installed() {
-  setup_wimlib
   umount "$WIN_PATH"
 
   # capture mount output
@@ -371,15 +369,26 @@ backup_partitions() {
 }
 
 win_esd_search() {
-  for depth in "-maxdepth 1" ""; do
-    for dir in /sdcard/Download /external_sd/WOA /usbstorage/WOA /usb_otg/WOA \
-               /sdcard /external_sd /usbstorage /usb_otg; do
-      WIN_IMAGE=$(find "$dir" $depth -type f \( -iname "*.esd" -o -iname "*.wim" \) \
-                  ! -path "*/Android/*" 2>/dev/null | head -n 1)
-      [ -n "$WIN_IMAGE" ] && { print_centered "Found: $WIN_IMAGE"; return 0; }
+  WIN_IMAGE=""
+
+  for d in /sdcard/Download /external_sd/WOA /usbstorage/WOA /usb_otg/WOA \
+           /sdcard /external_sd /usbstorage /usb_otg; do
+    [ -d "$d" ] || continue
+    # Quick + deep search for wim/esd
+    for depth in "-maxdepth 1" ""; do
+      WIN_IMAGE=$(find "$d" $depth -type f -iname "install.*" ! -path "*/Android/*" 2>/dev/null | head -n 1)
+      [ -n "$WIN_IMAGE" ] && { ui_print " Found: $WIN_IMAGE"; return; }
     done
+    # If not found, try ISO
+    ISO=$(find "$d" -type f -iname "*.iso" ! -path "*/Android/*" 2>/dev/null | head -n 1)
+    [ -n "$ISO" ] || continue
+    ui_print " Found ISO: $ISO"
+    "$upd_TEMP_FOLDER/7za" e "$ISO" "sources/install.*" -o"$(dirname "$ISO")" -y >/dev/null 2>&1
+    WIN_IMAGE=$(find "$(dirname "$ISO")" -type f -iname "install.*" | head -n 1)
+    [ -n "$WIN_IMAGE" ] && { ui_print " Extracted: $WIN_IMAGE"; return; }
   done
-  abort "Windows image file (ESD or WIM) not found"
+
+  error_exit " No Windows image (install.wim/esd or ISO with install.*) found!"
 }
 
 find_index() {
@@ -459,18 +468,6 @@ print_centered "Proceeding with formatting and installation"
     "$UPD_TEMP_FOLDER/wimlib-imagex" apply "$WIN_IMAGE" "$SELECTED_INDEX" "$WIN_PATH"
 }
 
-# might be better to combine both functions into one (e.g., setup_bin)
-# Could improve structure, but then slightly delay initial when ui_print during flashing zip
-setup_gdisk() {
-  package_extract_file "META-INF/com/bin/gdisk" "$UPD_TEMP_FOLDER/gdisk"
-  chmod 0777 "$UPD_TEMP_FOLDER/gdisk"
-}
-
-setup_wimlib() {
-  package_extract_file "META-INF/com/bin/wimlib-imagex" "$UPD_TEMP_FOLDER/wimlib-imagex"
-  chmod 0777 "$UPD_TEMP_FOLDER/wimlib-imagex"
-}
-
 rm -rf "$UPD_TEMP_FOLDER"
 mkdir -p "$UPD_TEMP_FOLDER"
 mkdir -p "$IMG_BACKUP_FOLDER"
@@ -485,13 +482,16 @@ package_extract_file "wininstaller.conf" "$CONFIG_FILE" || {
     exit 1
 }
 
-chmod 777 "$UPD_TEMP_FOLDER/wininstaller.conf"
-
 package_extract_file "META-INF/com/google/android/updater-script" "$UPD_TEMP_FOLDER/updater-script" || {
     ui_print " Cannot extract updater-script. Do you have it in package?"
     exit 1
 }
-chmod 777 "$UPD_TEMP_FOLDER/updater-script"
+
+for b in gdisk wimlib-imagex 7za; do
+    package_extract_file "META-INF/com/bin/$b" "$UPD_TEMP_FOLDER/$b"
+done
+
+chmod -R 0777 "$UPD_TEMP_FOLDER"
 
 # Source the updater-script (Only if it's a valid shell script)
 if grep -q "^#!/" "$UPD_TEMP_FOLDER/updater-script"; then
