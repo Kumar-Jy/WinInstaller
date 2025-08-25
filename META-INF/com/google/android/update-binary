@@ -370,25 +370,23 @@ backup_partitions() {
 
 win_esd_search() {
   WIN_IMAGE=""
-
   for d in /sdcard/Download /external_sd/WOA /usbstorage/WOA /usb_otg/WOA \
            /sdcard /external_sd /usbstorage /usb_otg; do
     [ -d "$d" ] || continue
-    # Quick + deep search for wim/esd
     for depth in "-maxdepth 1" ""; do
-      WIN_IMAGE=$(find "$d" $depth -type f -iname "install.*" ! -path "*/Android/*" 2>/dev/null | head -n 1)
-      [ -n "$WIN_IMAGE" ] && { ui_print " Found: $WIN_IMAGE"; return; }
+      WIN_IMAGE=$(find "$d" $depth -type f \( -iname "*.wim" -o -iname "*.esd" \) ! -path "*/Android/*" 2>/dev/null | head -n 1)
+      [ -n "$WIN_IMAGE" ] && { print_centered " Found: $WIN_IMAGE"; return; }
     done
-    # If not found, try ISO
+
     ISO=$(find "$d" -type f -iname "*.iso" ! -path "*/Android/*" 2>/dev/null | head -n 1)
     [ -n "$ISO" ] || continue
-    ui_print " Found ISO: $ISO"
-    "$upd_TEMP_FOLDER/7za" e "$ISO" "sources/install.*" -o"$(dirname "$ISO")" -y >/dev/null 2>&1
-    WIN_IMAGE=$(find "$(dirname "$ISO")" -type f -iname "install.*" | head -n 1)
-    [ -n "$WIN_IMAGE" ] && { ui_print " Extracted: $WIN_IMAGE"; return; }
+    print_centered " Found ISO: $ISO"
+    DIR=$(dirname "$ISO")
+    "$UPD_TEMP_FOLDER/7za" e "$ISO" "sources/install.*" -o"$DIR" -y >/dev/null 2>&1
+    WIN_IMAGE=$(find "$DIR" -type f \( -iname "install.wim" -o -iname "install.esd" \) | head -n 1)
+    [ -n "$WIN_IMAGE" ] && { print_centered "Extracted: $WIN_IMAGE"; return; }
   done
-
-  error_exit " No Windows image (install.wim/esd or ISO with install.*) found!"
+  [ -n "$WIN_IMAGE" ] || { print_centered "No wim/esd or iso found!"; exit 1; }
 }
 
 find_index() {
