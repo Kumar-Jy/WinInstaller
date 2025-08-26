@@ -332,7 +332,7 @@ verify_battery() {
 
 is_windows_installed() {
   umount "$WIN_PATH"
-
+  $UPD_TEMP_FOLDER/ntfsfix "WIN_PATH"
   # capture mount output
   MOUNT_LOG=$(mount.ntfs "$WIN_PATH" "$WIN_MOUNT_FOLDER" 2>&1)
 
@@ -485,7 +485,7 @@ package_extract_file "META-INF/com/google/android/updater-script" "$UPD_TEMP_FOL
     exit 1
 }
 
-for b in gdisk wimlib-imagex 7za; do
+for b in gdisk ntfsfix wimlib-imagex 7za; do
     package_extract_file "META-INF/com/bin/$b" "$UPD_TEMP_FOLDER/$b"
 done
 
