@@ -3,6 +3,9 @@ name: Build Vayu-Installer ZIP
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -23,7 +26,8 @@ jobs:
         run: |
           BUILD_DATE=$(date '+%d-%b-%Y')
           echo "BUILD_DATE=$BUILD_DATE" >> $GITHUB_ENV
-          echo "ARTIFACT_NAME=VAYU-WinInstaller-$BUILD_DATE" >> $GITHUB_ENV
+          echo "ARTIFACT_NAME=VAYU-WinInstaller-${BUILD_DATE}" >> $GITHUB_ENV
+          echo "ZIP_NAME=VAYU_WinInstaller_TEST_${BUILD_DATE}.zip" >> $GITHUB_ENV
 
       - name: Generate wininstaller.conf
         run: |
@@ -116,3 +120,16 @@ jobs:
             META-INF
             wininstaller.conf
             woahelper.apk
+      - name: Create Final ZIP
+        run: |
+          7z a "${ZIP_NAME}" installer ToolBox META-INF wininstaller.conf woahelper.apk
+
+      - name: Upload release (GitHub Release)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: Vayu_WinInstaller
+          files: ${{ env.ZIP_NAME }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
