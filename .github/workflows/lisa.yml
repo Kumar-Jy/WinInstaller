@@ -1,5 +1,5 @@
 
-name: Build Nabu-Installer ZIP
+name: Build Lisa-Installer ZIP
 
 on:
   workflow_dispatch:
