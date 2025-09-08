@@ -131,7 +131,7 @@ jobs:
       - name: Upload release (GitHub Release)
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: NABU_WinInstaller
+          tag_name: LISA_WinInstaller
           files: ${{ env.ZIP_NAME }}
           draft: false
           prerelease: false
