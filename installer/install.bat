@@ -42,6 +42,10 @@ echo ============================================================
 echo             Checking for Windows installation...
 echo ============================================================
 echo(
+echo Running CHKDSK to fix NTFS volume...
+chkdsk %~d0 /F /X
+echo CHKDSK complete.
+echo(
 
 rem Check if Windows is already installed
 if exist "%~d0\Windows\explorer.exe" (
