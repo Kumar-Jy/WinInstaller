@@ -392,6 +392,12 @@ win_esd_search() {
 find_index() {
   local wim_info_path="$UPD_TEMP_FOLDER/wim_info.txt"
   "$UPD_TEMP_FOLDER/wimlib-imagex" info "$WIN_IMAGE" > "$wim_info_path" 2>/dev/null
+
+  if ! grep -q "ARM64" "$wim_info_path"; then
+      abort "Incompatible Architecture found. Please Download ARM64 Version."
+    fi
+    print_centered "ARM64 architecture detected. Proceeding ....."
+
   for EDITION in "${WINDOWS_EDITIONS[@]}"; do 
   INDEX=$(grep -B 1 "$EDITION" "$wim_info_path" | awk '/Index/ {print $2; exit}')
     if [[ -n "$INDEX" ]]; then
