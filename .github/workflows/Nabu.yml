@@ -134,32 +134,6 @@ jobs:
       - name: Upload release (GitHub Release)
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: Nabu-WinInstaller
-          files: ${{ env.ZIP_NAME }}
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}        run: |
-          rm -rf driver-temp checksum-temp driver.7z
-
-      - name: Upload installer artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.ARTIFACT_NAME }}
-          path: |
-            installer
-            ToolBox
-            META-INF
-            wininstaller.conf
-            woahelper.apk
-
-      - name: Create Final ZIP
-        run: |
-          7z a "${ZIP_NAME}" installer ToolBox META-INF wininstaller.conf woahelper.apk
-
-      - name: Upload release (GitHub Release)
-        uses: softprops/action-gh-release@v2
-        with:
           tag_name: NABU_WinInstaller
           files: ${{ env.ZIP_NAME }}
           draft: false
