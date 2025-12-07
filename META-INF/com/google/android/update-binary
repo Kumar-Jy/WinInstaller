@@ -321,8 +321,9 @@ verify_part() {
 
 run_gptfix() {
   for d in /dev/block/sd?; do
-    [ -b "$d" ] && echo "Fixing GPT on $d" &&
-    "$UPD_TEMP_FOLDER/gdisk" "$d" <<< $'x\nj\n\nk\n\nw\nY'
+    if [ -b "$d" ]; then ui_print "Fixing GPT on $d"
+        printf 'x\nj\n\nk\n\nw\nY\n' | "$UPD_TEMP_FOLDER/gdisk" "$d"
+    fi
   done
 }
 
