@@ -1,4 +1,4 @@
-# WinInstaller  <img align="right" src="Logo.png" width="75">
+# WinInstaller  <img align="right" src="IMG_20251207_111815_421.jpg" width="75">
 #### © 2025–2026
 
 ---
