@@ -399,15 +399,18 @@ find_index() {
     fi
     print_centered "ARM64 architecture detected. Proceeding ....."
 
-  for EDITION in "${WINDOWS_EDITIONS[@]}"; do 
-  INDEX=$(grep -B 1 "$EDITION" "$wim_info_path" | awk '/Index/ {print $2; exit}')
-    if [[ -n "$INDEX" ]]; then
-      SELECTED_INDEX="$INDEX"
-      SELECTED_EDITION="$EDITION"
-      print_centered "$SELECTED_EDITION found at Index $SELECTED_INDEX"
-      return 0
-    fi
-  done
+  for EDITION in "${WINDOWS_EDITIONS[@]}"; do
+  INDEX=$(grep -B2 "^Name:[[:space:]]*$EDITION$" "$wim_info_path" | awk '/Index:/ {print $2; exit}')
+  if [ -n "$INDEX" ]; then
+    SELECTED_INDEX="$INDEX"
+    SELECTED_EDITION="$EDITION"
+    BUILD=$(grep -m1 "^Build:" "$wim_info_path" | awk '{print $2}')
+    SPBUILD=$(grep -m1 "^Service Pack Build:" "$wim_info_path" | awk '{print $4}')
+    print_centered "$SELECTED_EDITION, Build No. $BUILD.$SPBUILD found at Index $SELECTED_INDEX"
+    return 0
+  fi
+done
+
   ui_print " "
   print_line
   print_centered "Auto detection FAILED!"
@@ -455,9 +458,9 @@ find_index() {
 }
 
 format_win() {
-  umount "$WIN_PATH"
+  umount -lf "$WIN_PATH"
   mkfs.ntfs -f "$WIN_PATH" -L "$WIN_PART_NAME"
-  $UPD_TEMP_FOLDER/ntfsfix -b -d "WIN_PATH"
+  $UPD_TEMP_FOLDER/ntfsfix "WIN_PATH"
 }
 
 Windows_Installation() {
