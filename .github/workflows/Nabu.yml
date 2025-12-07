@@ -12,15 +12,15 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install 7zip
         run: sudo apt-get update && sudo apt-get install -y p7zip-full
 
       - name: Define driver and UEFI URLs
         run: |
-          echo "DRIVER_URL=https://github.com/Kumar-Jy/Windows-in-NABU-Without-PC/releases/download/Files/Nabu-Driver.zip" >> $GITHUB_ENV
-          echo "UEFI_URL=https://github.com/erdilS/Port-Windows-11-Xiaomi-Pad-5/releases/download/UEFI/nabu-uefi-v4.img" >> $GITHUB_ENV
+          echo "DRIVER_URL=https://github.com/Kumar-Jy/Windows-in-NABU-Without-PC/releases/download/Drivers-And-UEFI/Nabu-Drivers.zip" >> $GITHUB_ENV
+          echo "UEFI_URL=https://github.com/Kumar-Jy/Windows-in-NABU-Without-PC/releases/download/Drivers-And-UEFI/SB-UEFI-v4.img" >> $GITHUB_ENV
 
       - name: Set build date and artifact name
         run: |
@@ -35,7 +35,7 @@ jobs:
           # ================================ Configurations ================================
           DEVICE_CODE="nabu"
           WIN_MIN_SIZE=30
-          ESP_MIN_SIZE=349
+          ESP_MIN_SIZE=345
           REQUIRED_BATTERY=50
           WIN_PART_NAME="WINNABU"
           ESP_PART_NAME="ESPNABU"
@@ -85,7 +85,7 @@ jobs:
 
       - name: Download pe.img
         run: |
-          curl -L https://github.com/Kumar-Jy/WinInstaller/releases/download/WinPE/pe.img \
+          curl -L https://github.com/Kumar-Jy/WOAInstaller/releases/download/WinPE/WinPE23H2.img \
           -o installer/pe.img
 
       - name: Setup ToolBox
@@ -94,12 +94,16 @@ jobs:
           -o ToolBox/ToolBox.exe
           curl -L https://github.com/asheroto/Deploy-Office/releases/latest/download/Deploy-Office.exe \
           -o ToolBox/Deploy-Office.exe
-          curl -L https://github.com/Kumar-Jy/WOAInstaller/releases/download/files/AtlasPlaybook_v0.4.1.apbx \
+          curl -L https://github.com/Kumar-Jy/WOAInstaller/releases/download/files/AtlasPlaybook_v0.5.0-hotfix.apbx \
           -o ToolBox/AtlasPlaybook.apbx
+          curl -L https://github.com/Kumar-Jy/WOAInstaller/releases/download/files/AME.Beta.exe \
+          -o ToolBox/AME-Wizard.exe
+          curl -L https://github.com/Kumar-Jy/WOAInstaller/releases/download/files/Dism++10ARM.zip \
+          -o ToolBox/Dism++.zip
 
       - name: Download Woa-Helper
         run: |
-          curl -L https://github.com/n00b69/woa-helper/releases/download/APK/BETAwoahelper1.8.4.41.apk \
+          curl -L https://github.com/n00b69/woa-helper/releases/download/APK/BETAwoahelper1.8.4.44.apk \
           -o woahelper.apk
 
       - name: Generate and copy SHA-256 checksums
@@ -110,6 +114,32 @@ jobs:
       - name: Cleanup temp folders
         continue-on-error: true
         run: |
+          rm -rf driver-temp checksum-temp driver.7z
+
+      - name: Upload installer artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: |
+            installer
+            ToolBox
+            META-INF
+            wininstaller.conf
+            woahelper.apk
+
+      - name: Create Final ZIP
+        run: |
+          7z a "${ZIP_NAME}" installer ToolBox META-INF wininstaller.conf woahelper.apk
+
+      - name: Upload release (GitHub Release)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: Nabu-WinInstaller
+          files: ${{ env.ZIP_NAME }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}        run: |
           rm -rf driver-temp checksum-temp driver.7z
 
       - name: Upload installer artifacts
