@@ -397,7 +397,6 @@ find_index() {
   if ! grep -q "ARM64" "$wim_info_path"; then
       abort "Incompatible Architecture found. Please Download ARM64 Version."
     fi
-    print_centered "ARM64 architecture detected. Proceeding ....."
 
   for EDITION in "${WINDOWS_EDITIONS[@]}"; do
   INDEX=$(grep -B2 "^Name:[[:space:]]*$EDITION$" "$wim_info_path" | awk '/Index:/ {print $2; exit}')
@@ -406,7 +405,7 @@ find_index() {
     SELECTED_EDITION="$EDITION"
     BUILD=$(grep -m1 "^Build:" "$wim_info_path" | awk '{print $2}')
     SPBUILD=$(grep -m1 "^Service Pack Build:" "$wim_info_path" | awk '{print $4}')
-    print_centered "$SELECTED_EDITION, Build No. $BUILD.$SPBUILD found at Index $SELECTED_INDEX"
+    print_centered "$SELECTED_EDITION, ARM64, Build:$BUILD.$SPBUILD found at Index:$SELECTED_INDEX"
     return 0
   fi
 done
