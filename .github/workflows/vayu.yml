@@ -19,8 +19,8 @@ jobs:
 
       - name: Define driver and UEFI URLs
         run: |
-          echo "https://github.com/Kumar-Jy/WinInstaller/releases/download/Vayu_WinInstaller/VAYU_DRIVER.7z" >> $GITHUB_ENV
-          echo "https://github.com/Kumar-Jy/WinInstaller/releases/download/Vayu_WinInstaller/Vayu_uefi.img" >> $GITHUB_ENV
+          echo "DRIVER_URL=https://github.com/Kumar-Jy/WinInstaller/releases/download/Vayu_WinInstaller/VAYU_DRIVER.7z" >> $GITHUB_ENV
+          echo "UEFI_URL=https://github.com/Kumar-Jy/WinInstaller/releases/download/Vayu_WinInstaller/Vayu_uefi.img" >> $GITHUB_ENV
 
       - name: Set build date and artifact name
         run: |
