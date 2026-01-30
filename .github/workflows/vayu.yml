@@ -19,15 +19,15 @@ jobs:
 
       - name: Define driver and UEFI URLs
         run: |
-          echo "DRIVER_URL=https://github.com/WaLoVayu/POCOX3Pro-Windows-Releases/releases/download/2502.28/POCOX3Pro-Drivers-v2502.28-Desktop.7z" >> $GITHUB_ENV
-          echo "UEFI_URL=https://github.com/WaLoVayu/POCOX3Pro-Windows-Releases/releases/download/2502.28/POCO.X3.Pro.UEFI-v2502.28.img" >> $GITHUB_ENV
+          echo "https://github.com/Kumar-Jy/WinInstaller/releases/download/Vayu_WinInstaller/VAYU_DRIVER.7z" >> $GITHUB_ENV
+          echo "https://github.com/Kumar-Jy/WinInstaller/releases/download/Vayu_WinInstaller/Vayu_uefi.img" >> $GITHUB_ENV
 
       - name: Set build date and artifact name
         run: |
           BUILD_DATE=$(date '+%d-%b-%Y')
           echo "BUILD_DATE=$BUILD_DATE" >> $GITHUB_ENV
           echo "ARTIFACT_NAME=VAYU-WinInstaller-${BUILD_DATE}" >> $GITHUB_ENV
-          echo "ZIP_NAME=VAYU_WinInstaller_TEST_${BUILD_DATE}.zip" >> $GITHUB_ENV
+          echo "ZIP_NAME=VAYU_WinInstaller_${BUILD_DATE}.zip" >> $GITHUB_ENV
 
       - name: Generate wininstaller.conf
         run: |
@@ -85,7 +85,7 @@ jobs:
 
       - name: Download pe.img
         run: |
-          curl -L https://github.com/Kumar-Jy/WinInstaller/releases/download/WinPE/pe.img \
+          curl -L https://github.com/Kumar-Jy/WOAInstaller/releases/download/WinPE/WinPE23H2.img \
           -o installer/pe.img
 
       - name: Setup ToolBox
@@ -94,10 +94,16 @@ jobs:
           -o ToolBox/ToolBox.exe
           curl -L https://github.com/asheroto/Deploy-Office/releases/latest/download/Deploy-Office.exe \
           -o ToolBox/Deploy-Office.exe
+          curl -L https://github.com/Kumar-Jy/WOAInstaller/releases/download/files/AtlasPlaybook_v0.5.0-hotfix.apbx \
+          -o ToolBox/AtlasPlaybook.apbx
+          curl -L https://github.com/Kumar-Jy/WOAInstaller/releases/download/files/AME.Beta.exe \
+          -o ToolBox/AME-Wizard.exe
+          curl -L https://github.com/Kumar-Jy/WOAInstaller/releases/download/files/Dism++10ARM.zip \
+          -o ToolBox/Dism++.zip
 
       - name: Download Woa-Helper
         run: |
-          curl -L https://github.com/WaLoVayu/M3K-Helper/releases/download/v3.3/M3K_Helper_v3.3_release.apk \
+          curl -L https://github.com/n00b69/woa-helper/releases/download/APK/BETAwoahelper1.8.4.44.apk \
           -o woahelper.apk
 
       - name: Generate and copy SHA-256 checksums
