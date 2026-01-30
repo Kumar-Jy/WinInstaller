@@ -400,10 +400,14 @@ find_index() {
     SELECTED_EDITION="$EDITION"
     BUILD=$(grep -m1 "^Build:" "$wim_info_path" | awk '{print $2}')
     SPBUILD=$(grep -m1 "^Service Pack Build:" "$wim_info_path" | awk '{print $4}')
+	if [[ -n "$SPBUILD" && "$SPBUILD" -gt 7171 ]]; then
+        abort "Unsupported Service Pack Build ($SPBUILD). Maximum supported is 7171."
+      fi
     print_centered "$SELECTED_EDITION ARM64 Build:$BUILD.$SPBUILD found at Index:$SELECTED_INDEX"
     return 0
   fi
 done
+
   ui_print " "
   print_line
   print_centered "Auto detection FAILED!"
