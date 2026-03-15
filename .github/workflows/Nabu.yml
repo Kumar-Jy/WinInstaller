@@ -12,22 +12,23 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install 7zip
         run: sudo apt-get update && sudo apt-get install -y p7zip-full
 
       - name: Define driver and UEFI URLs
         run: |
-          echo "DRIVER_URL=https://github.com/Kumar-Jy/Windows-in-NABU-Without-PC/releases/download/Drivers-And-UEFI/Nabu-Drivers.zip" >> $GITHUB_ENV
-          echo "UEFI_URL=https://github.com/Kumar-Jy/Windows-in-NABU-Without-PC/releases/download/Drivers-And-UEFI/SB-UEFI-v4.img" >> $GITHUB_ENV
+          echo "DRIVER_URL=https://github.com/Kumar-Jy/Windows-in-NABU-Without-PC/releases/download/Drivers-And-UEFI/Nabu_Drivers_v2601.19_hotfix.7z" >> $GITHUB_ENV
+          echo "UEFI_URL=https://github.com/Kumar-Jy/Windows-in-NABU-Without-PC/releases/download/Drivers-And-UEFI/MiPad5.UEFI-v2601-19-hotfix.img" >> $GITHUB_ENV
+          echo "UEFI_boot_URL=https://github.com/Kumar-Jy/Windows-in-NABU-Without-PC/releases/download/Drivers-And-UEFI/MiPad5.UEFI-v2601-19.img" >> $GITHUB_ENV
 
       - name: Set build date and artifact name
         run: |
           BUILD_DATE=$(date '+%d-%b-%Y')
           echo "BUILD_DATE=$BUILD_DATE" >> $GITHUB_ENV
-          echo "ARTIFACT_NAME=nabu-wininstaller-$BUILD_DATE" >> $GITHUB_ENV
-          echo "ZIP_NAME=NABU_WinInstaller_${BUILD_DATE}.zip" >> $GITHUB_ENV
+          echo "ARTIFACT_NAME=nabu-wininstaller-v2601.19-$BUILD_DATE" >> $GITHUB_ENV
+          echo "ZIP_NAME=NABU_WinInstaller_V260119_${BUILD_DATE}.zip" >> $GITHUB_ENV
 
       - name: Generate wininstaller.conf
         run: |
@@ -50,7 +51,7 @@ jobs:
             "Windows 10 Home"
           )
           DEVICE_NAME="Xiaomi Pad 5"
-          WI_VERSION="WinInstaller_NABU_R8.3.2"
+          WI_VERSION="WinInstaller_NABU_R8.3.3"
           BUILD_DATE="$BUILD_DATE"
           MAINTAINER="Project-Aloha,map220v,remtrik And idk"
           # ============================== Configurations End ==============================
@@ -81,7 +82,9 @@ jobs:
           rm -rf installer/Driver/tools/DriverUpdater/X86 installer/Driver/tools/DriverUpdater/AMD64
 
       - name: Download uefi.img
-        run: curl -L "$UEFI_URL" -o installer/uefi.img
+        run: |
+          curl -L "$UEFI_URL" -o installer/uefi.img
+          curl -L "$UEFI_boot_URL" -o installer/uefiboot.img
 
       - name: Download pe.img
         run: |
@@ -94,16 +97,18 @@ jobs:
           -o ToolBox/ToolBox.exe
           curl -L https://github.com/asheroto/Deploy-Office/releases/latest/download/Deploy-Office.exe \
           -o ToolBox/Deploy-Office.exe
-          curl -L https://github.com/Kumar-Jy/WinInstaller/releases/download/files/AtlasPlaybook_v0.5.0-hotfix.apbx \
+          curl -L https://github.com/Kumar-Jy/WOAInstaller/releases/download/files/AtlasPlaybook_v0.5.0-hotfix.apbx \
           -o ToolBox/AtlasPlaybook.apbx
-          curl -L https://github.com/Kumar-Jy/WinInstaller/releases/download/files/AME.Beta.exe \
-          -o ToolBox/AME-Wizard.exe
-          curl -L https://github.com/Kumar-Jy/WinInstaller/releases/download/files/Dism++10ARM.zip \
+          curl -L https://github.com/Kumar-Jy/WinInstaller/releases/download/files/Revi-PB-25.10-Hotfix.apbx \
+          -o ToolBox/ReviPlaybook.apbx
+          curl -L https://download.ameliorated.io/AME%20Beta.zip \
+          -o ToolBox/AME-Wizard.zip
+          curl -L https://github.com/Kumar-Jy/WOAInstaller/releases/download/files/Dism++10ARM.zip \
           -o ToolBox/Dism++.zip
 
       - name: Download Woa-Helper
         run: |
-          curl -L https://github.com/n00b69/woa-helper/releases/download/APK/BETAwoahelper1.8.4.44.apk \
+          curl -L https://github.com/n00b69/woa-helper/releases/download/APK/BETAwoahelper1.8.4.45.apk \
           -o woahelper.apk
 
       - name: Generate and copy SHA-256 checksums
@@ -115,17 +120,6 @@ jobs:
         continue-on-error: true
         run: |
           rm -rf driver-temp checksum-temp driver.7z
-
-      - name: Upload installer artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.ARTIFACT_NAME }}
-          path: |
-            installer
-            ToolBox
-            META-INF
-            wininstaller.conf
-            woahelper.apk
 
       - name: Create Final ZIP
         run: |
