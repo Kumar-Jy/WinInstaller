@@ -12,15 +12,15 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
 
       - name: Install 7zip
         run: sudo apt-get update && sudo apt-get install -y p7zip-full
 
       - name: Define driver and UEFI URLs
         run: |
-          echo "DRIVER_URL=https://github.com/WaLoVayu/POCOX3Pro-Windows-Releases/releases/download/2502.28/POCOX3Pro-Drivers-v2502.28-Desktop.7z" >> $GITHUB_ENV
-          echo "UEFI_URL=https://github.com/WaLoVayu/POCOX3Pro-Windows-Releases/releases/download/2502.28/POCO.X3.Pro.UEFI-v2502.28.img" >> $GITHUB_ENV
+          echo "DRIVER_URL=https://github.com/Kumar-Jy/WinInstaller/releases/download/Vayu_WinInstaller/VAYU_DRIVER.7z" >> $GITHUB_ENV
+          echo "UEFI_URL=https://github.com/Kumar-Jy/WinInstaller/releases/download/Vayu_WinInstaller/vayu_uefi.img" >> $GITHUB_ENV
 
       - name: Set build date and artifact name
         run: |
@@ -50,7 +50,7 @@ jobs:
             "Windows 10 Home"
           )
           DEVICE_NAME="Poco X3 Pro"
-          WI_VERSION="WinInstaller_vayu_R8.3.2"
+          WI_VERSION="WinInstaller_vayu_R8.3.3"
           BUILD_DATE="$BUILD_DATE"
           MAINTAINER="Project-Aloha,degdag,remtrik And idk"
           # ============================== Configurations End ==============================
@@ -85,7 +85,7 @@ jobs:
 
       - name: Download pe.img
         run: |
-          curl -L https://github.com/Kumar-Jy/WinInstaller/releases/download/WinPE/pe.img \
+          curl -L https://github.com/Kumar-Jy/WinInstaller/releases/download/WinPE/WinPE23H2.img \
           -o installer/pe.img
 
       - name: Setup ToolBox
@@ -94,7 +94,13 @@ jobs:
           -o ToolBox/ToolBox.exe
           curl -L https://github.com/asheroto/Deploy-Office/releases/latest/download/Deploy-Office.exe \
           -o ToolBox/Deploy-Office.exe
-
+          curl -L https://github.com/Ameliorated-LLC/trusted-uninstaller-cli/releases/download/0.8.4/AME-Beta-v0.8.4.exe \
+          -o ToolBox/AMEWizard.exe
+          curl -L https://github.com/Kumar-Jy/WinInstaller/releases/download/files/AtlasPlaybook_v0.5.0-hotfix.apbx \
+          -o ToolBox/AtlasOSPlayBook.apbx
+          curl -L https://github.com/Kumar-Jy/WinInstaller/releases/download/files/Revi-PB-25.10-Hotfix.apbx \
+          -o ToolBox/ReviOSPlayBook.apbx
+          
       - name: Download Woa-Helper
         run: |
           curl -L https://github.com/WaLoVayu/M3K-Helper/releases/download/v3.3/M3K_Helper_v3.3_release.apk \
@@ -111,7 +117,7 @@ jobs:
           rm -rf driver-temp checksum-temp driver.7z
 
       - name: Upload installer artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: |
