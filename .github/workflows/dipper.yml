@@ -1,0 +1,135 @@
+name: Build Dipper-Installer ZIP
+
+on:
+  pull_request: 
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install 7zip
+        run: sudo apt-get update && sudo apt-get install -y p7zip-full
+
+      - name: Define driver and UEFI URLs
+        run: |
+          echo "DRIVER_URL=https://github.com/n00b69/woa-dipper/releases/download/Drivers/dipper-drivers.zip" >> $GITHUB_ENV
+          echo "UEFI_URL=https://github.com/n00b69/woa-dipper/releases/download/UEFI/dipper-uefi.img" >> $GITHUB_ENV
+          echo "UEFI_boot_URL=https://github.com/n00b69/woa-dipper/releases/download/UEFI/dipper-uefi.img" >> $GITHUB_ENV
+
+      - name: Set build date and artifact name
+        run: |
+          BUILD_DATE=$(date '+%d-%b-%Y')
+          echo "BUILD_DATE=$BUILD_DATE" >> $GITHUB_ENV
+          echo "ARTIFACT_NAME=dipper-wininstaller-v2.0rc2-$BUILD_DATE" >> $GITHUB_ENV
+          echo "ZIP_NAME=dipper_WinInstaller_V2.0RC2_${BUILD_DATE}.zip" >> $GITHUB_ENV
+
+      - name: Generate wininstaller.conf
+        run: |
+          cat << EOF > wininstaller.conf
+          # ================================ Configurations ================================
+          DEVICE_CODE="dipper"
+          WIN_MIN_SIZE=30
+          ESP_MIN_SIZE=300
+          REQUIRED_BATTERY=50
+          WIN_PART_NAME="WINDIPPER"
+          ESP_PART_NAME="ESPDIPPER"
+          SECURE_BOOT="FALSE"
+          WINDOWS_EDITIONS=(
+            "Windows 11 Pro"
+            "Windows 11 IoT Enterprise LTSC 2024"
+            "Windows 11 Enterprise LTSC 2024"
+            "Windows 11 Enterprise"
+            "Windows 11 Home"
+          )
+          DEVICE_NAME="dipper"
+          WI_VERSION="WinInstaller_dipper_R8.3.3"
+          BUILD_DATE="$BUILD_DATE"
+          MAINTAINER="Project-Aloha,n00b69 And idk"
+          # ============================== Configurations End ==============================
+          EOF
+  
+      - name: Create temp and target directories
+        run: |
+          mkdir -p driver-temp
+          mkdir -p checksum-temp
+          mkdir -p installer/Driver
+          mkdir -p ToolBox
+
+      - name: Download drivers archive
+        run: curl -L "$DRIVER_URL" -o driver.7z
+
+      - name: Extract all drivers to temp folder
+        run: 7z x driver.7z -o driver-temp
+
+      - name: Copy selected directories into installer/Driver
+        run: |
+          for dir in components definitions tools apps; do
+            find driver-temp -type d -name "$dir" -print0 |
+              while IFS= read -r -d '' match; do
+                echo "Copying: $match"
+                cp -r "$match" installer/Driver/
+              done
+          done
+          rm -rf installer/Driver/tools/DriverUpdater/X86 installer/Driver/tools/DriverUpdater/AMD64
+
+      - name: Download uefi.img
+        run: |
+          curl -L "$UEFI_URL" -o installer/uefi.img
+          curl -L "$UEFI_boot_URL" -o installer/uefiboot.img
+
+      - name: Download pe.img
+        run: |
+          curl -L https://github.com/Kumar-Jy/WOAInstaller/releases/download/WinPE/WinPE23H2.img \
+          -o installer/pe.img
+
+      - name: Setup ToolBox
+        run: |
+          curl -L https://github.com/Misha803/My-Scripts/releases/download/WOA-ToolBox/WOA-Toolbox-NEW.exe \
+          -o ToolBox/ToolBox.exe
+          curl -L https://github.com/asheroto/Deploy-Office/releases/latest/download/Deploy-Office.exe \
+          -o ToolBox/Deploy-Office.exe
+          curl -L https://github.com/Kumar-Jy/WOAInstaller/releases/download/files/AtlasPlaybook_v0.5.0-hotfix.apbx \
+          -o ToolBox/AtlasPlaybook.apbx
+          curl -L https://github.com/Kumar-Jy/WinInstaller/releases/download/files/Revi-PB-25.10-Hotfix.apbx \
+          -o ToolBox/ReviPlaybook.apbx
+          curl -L https://download.ameliorated.io/AME%20Beta.zip \
+          -o ToolBox/AME-Wizard.zip
+          curl -L https://github.com/Kumar-Jy/WOAInstaller/releases/download/files/Dism++10ARM.zip \
+          -o ToolBox/Dism++.zip
+
+      - name: Download Woa-Helper
+        run: |
+          curl -L https://github.com/n00b69/woa-helper/releases/download/APK/BETAwoahelper1.8.4.45.apk \
+          -o woahelper.apk
+
+      - name: Generate and copy SHA-256 checksums
+        run: |
+          cd installer && find . -type f -print0 | xargs -0 sha256sum > ../checksum-temp/sha256sum
+          cp ../checksum-temp/sha256sum sha256sum
+
+      - name: Cleanup temp folders
+        continue-on-error: true
+        run: |
+          rm -rf driver-temp checksum-temp driver.7z
+
+      - name: Create Final ZIP
+        run: |
+          7z a "${ZIP_NAME}" installer ToolBox META-INF wininstaller.conf woahelper.apk
+
+      - name: Upload release (GitHub Release)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: dipper-WinInstaller
+          files: ${{ env.ZIP_NAME }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
