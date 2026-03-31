@@ -1,7 +1,7 @@
-
 name: Build Lisa-Installer ZIP
 
 on:
+  pull_request: 
   workflow_dispatch:
   
 permissions:
@@ -68,7 +68,7 @@ jobs:
         run: curl -L "$DRIVER_URL" -o driver.7z
 
       - name: Extract all drivers to temp folder
-        run: 7z x driver.7z -odriver-temp
+        run: 7z x driver.7z -o driver-temp
 
       - name: Copy selected directories into installer/Driver
         run: |
