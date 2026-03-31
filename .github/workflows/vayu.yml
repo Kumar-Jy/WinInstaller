@@ -68,7 +68,7 @@ jobs:
         run: curl -L "$DRIVER_URL" -o driver.7z
 
       - name: Extract all drivers to temp folder
-        run: 7z x driver.7z -o driver-temp
+        run: 7z x driver.7z -odriver-temp
 
       - name: Copy selected directories into installer/Driver
         run: |
